@@ -13,26 +13,18 @@ npm run build    # typecheck + build de produção em dist/
 npm run preview  # serve o build
 ```
 
-## Deploy no Cloudflare Pages
+## Deploy no Cloudflare
 
-**Opção A — conectando o repositório (recomendado)**
+O projeto está configurado para **Cloudflare Workers (static assets)**, via `wrangler.toml`.
 
-1. Cloudflare Dashboard → Workers & Pages → Create → Pages → *Connect to Git*.
-2. Selecione este repositório e use:
-   - Framework preset: **None** (ou Vite)
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-   - Node: o arquivo `.node-version` já fixa a versão 20.
-3. Salve. Cada push na branch de produção faz um novo deploy.
+No painel (Workers & Pages → projeto conectado ao Git):
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+- Node: fixado em 20 pelo `.node-version`.
 
-**Opção B — upload direto pelo terminal**
+Pelo terminal: `npm run build && npx wrangler deploy`.
 
-```bash
-npm run build
-npx wrangler pages deploy dist --project-name wrecklab
-```
-
-O `wrangler.toml` já aponta `pages_build_output_dir = "dist"`. O arquivo `public/_headers` define cache longo para `/assets/*` (nomes com hash) e `no-cache` para o `index.html`. O build usa caminhos relativos (`base: './'`), então também funciona em subpastas.
+O `public/_headers` define cache longo para `/assets/*` e `no-cache` para o `index.html`.
 
 ## Controles
 

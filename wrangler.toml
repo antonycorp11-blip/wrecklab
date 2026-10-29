@@ -1,3 +1,7 @@
 name = "wrecklab"
-pages_build_output_dir = "dist"
 compatibility_date = "2024-11-01"
+
+# Static site served by Cloudflare Workers (static assets). Build first: npm run build
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
