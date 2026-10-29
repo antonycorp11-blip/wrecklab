@@ -37,7 +37,7 @@ export class ProgressionManager {
 
   onDestroyed(objId: string, maxHp: number, oneHit: boolean, now: number, toolId: string) {
     this.recentKills.push(now);
-    this.recentKills = this.recentKills.filter((t) => now - t < 60);
+    this.recentKills = this.recentKills.filter((t) => now - t < 5);
     if (this.recentKills.length >= 10) this.complete('fast10');
     if (oneHit && maxHp >= 100) this.complete('oneshot');
     if (objId === 'safe' && TOOL_INDEX[toolId] <= 1) this.complete('stubborn');
@@ -64,10 +64,12 @@ export class ProgressionManager {
 
   onToolSwitch(id: string) { if (!this.run.tools.has(id)) { this.run.tools.add(id); this.run.switched = true; } }
 
-  onContractDone(id: string, count: number, time: number) {
-    const n = parseInt(id.slice(1), 10);
-    if (!this.run.switched && count >= 10) this.complete('loyal');
-    if (!this.run.auto && n >= 5) this.complete('manual');
-    if (id === 'c003' && time < 50) this.complete('speed3');
+  onRunEnd(crushed: number, auto: boolean) {
+    if (crushed >= 30) this.complete('run30');
+    if (crushed >= 20 && !auto) this.complete('manual');
+  }
+
+  onContractDone() {
+    if (!this.run.switched) this.complete('loyal');
   }
 }

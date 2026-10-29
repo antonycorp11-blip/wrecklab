@@ -26,18 +26,17 @@ Pelo terminal: `npm run build && npx wrangler deploy`.
 
 O `public/_headers` define cache longo para `/assets/*` e `no-cache` para o `index.html`.
 
-## Controles
+## Como se joga
+
+Cada contrato é um cliente com história e cenário próprios e um estoque grande de itens. Os itens ficam espalhados pelo chão do cenário. Em cada **run** (12 s no começo, mais com a família de habilidades *Fôlego*), segure e arraste a ferramenta sobre os itens para esmagar tudo o que passa embaixo. O que sobrar continua no chão para a próxima run. Entre as runs, gaste sucata na árvore e dinheiro nas ferramentas. Um contrato costuma levar várias runs.
 
 | Ação | PC | Mobile |
 | --- | --- | --- |
-| Usar ferramenta | Clique / segure o botão esquerdo | Toque / segure |
-| Prensa, torno, implosão | Segure em qualquer lugar | Segure em qualquer lugar |
-| Trocar ferramenta | Teclas `1`–`9` | Barra inferior |
+| Esmagar | Segure o botão esquerdo e arraste | Segure e arraste (a ferramenta fica acima do dedo) |
+| Começar run | Botão ▶ ou `Espaço` | Botão ▶ |
+| Trocar ferramenta | Teclas `1`–`9` | Barra no canto inferior esquerdo |
 | Árvore de habilidades | `T` (roda do mouse = zoom, arrastar = mover) | 🌳 (arrastar, pinça para zoom) |
 | Ferramentas / Contratos | `F` / `C` | 🛒 / 📋 |
-| Fechar painéis | `Esc` | ✕ |
-
-O jogo é feito para tela horizontal; em retrato aparece um aviso para girar o aparelho.
 
 ## Arquitetura
 
@@ -64,8 +63,9 @@ A resistência vem da relação pressão × dureza (com bônus por material): fe
 ### Expandindo conteúdo
 
 - **Objeto novo**: adicione um `def({...})` em `data/objects.ts` usando os helpers `R`, `RR`, `C`, `P`, `L`.
-- **Contrato novo**: adicione uma entrada em `data/contracts.ts`.
-- **Ferramenta nova**: adicione em `data/tools.ts` (`kind`: `pinch`, `strike`, `vise`, `press`, `implode`).
+- **Contrato novo**: adicione uma entrada em `data/contracts.ts` (história, frase do cliente, cenário e estoque).
+- **Cenário novo**: adicione em `data/scenes.ts` combinando parede, piso e adereços.
+- **Ferramenta nova**: adicione em `data/tools.ts` (`kind`: `pinch`, `strike`, `press`, `implode`).
 - **Árvore**: os mais de 200 nós são gerados a partir das tabelas de famílias em `data/skills.ts`. Para crescer a árvore, adicione entradas nas listas `spine`/`side`, novas famílias, ligações cruzadas ou regiões.
 
 ### Salvamento

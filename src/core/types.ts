@@ -52,28 +52,35 @@ export interface ObjectDef {
   build: () => PartSpec[];
 }
 
-export type ToolKind = 'pinch' | 'strike' | 'vise' | 'press' | 'implode';
+export type ToolKind = 'pinch' | 'strike' | 'press' | 'implode';
 
 export interface ToolDef {
   id: string;
   name: string;
   icon: string;
   kind: ToolKind;
-  /** pressure per hit (pinch/strike) or per second (continuous) */
+  /** pressure per impact */
   force: number;
-  /** hits per second (pinch/strike) */
+  /** impacts per second while held */
   rate: number;
-  /** contact radius in cm */
+  /** contact radius in screen px (before area upgrades) */
   radius: number;
-  /** real length in cm (hand tools are drawn and framed at real scale) */
-  len: number;
   cost: number;
   rareCost?: number;
   rep: number;
   desc: string;
-  pistons?: number;
   color: string;
   stage: number;
+}
+
+export interface SceneDef {
+  id: string;
+  name: string;
+  wall: 'tiles' | 'bricks' | 'planks' | 'corrugated' | 'concrete' | 'vault' | 'panels' | 'sky' | 'space';
+  wallColors: [string, string];
+  floor: 'tiles' | 'wood' | 'concrete' | 'dirt' | 'asphalt' | 'metal';
+  floorColors: [string, string];
+  props: string[];
 }
 
 export interface ContractDef {
@@ -81,13 +88,16 @@ export interface ContractDef {
   num: string;
   name: string;
   client: string;
-  desc: string;
-  items: [string, number][];
+  story: string;
+  quote: string;
+  scene: string;
+  stock: [string, number][];
+  /** items on screen at once (before upgrades) */
+  field: number;
   money: number;
   scrap: number;
   rep: number;
   sp: number;
-  par: number;
   req: { rep?: number; force?: number; contract?: string; tool?: string };
 }
 
@@ -97,7 +107,7 @@ export type StatKey =
   | 'autoHit' | 'feedSpeed' | 'autoPress' | 'dentMult' | 'fragMult' | 'pierce'
   | 'vsMetal' | 'vsGlass' | 'vsWood' | 'vsPlastic' | 'pressSpeed'
   | 'doubleHit' | 'residual' | 'domino' | 'phantom' | 'resonance' | 'gravity'
-  | 'recycle' | 'shockwave' | 'chain' | 'spMult' | 'toolDiscount';
+  | 'recycle' | 'shockwave' | 'chain' | 'spMult' | 'toolDiscount' | 'runTime' | 'fieldCap';
 
 export type Stats = Record<StatKey, number>;
 
@@ -137,15 +147,16 @@ export interface SaveData {
   tools: Record<string, ToolState>;
   equipped: string;
   skills: Record<string, number>;
-  contracts: Record<string, { done: number; best: number }>;
+  contracts: Record<string, { done: number; runs: number }>;
   challenges: Record<string, { done: boolean; claimed: boolean }>;
   stats: {
     destroyed: number; hits: number; crits: number; rare: number; mass: number;
-    playTime: number; contracts: number; moneyEarned: number; glass: number;
+    playTime: number; contracts: number; moneyEarned: number; glass: number; runs: number; bestRun: number;
     byObject: Record<string, number>;
   };
   settings: { volume: number; muted: boolean; quality: 'auto' | 'high' | 'low'; shake: boolean };
-  active: { id: string; idx: number; time: number } | null;
+  /** contract in progress: remaining stock per object id */
+  active: { id: string; left: Record<string, number>; runs: number } | null;
   autoRepeat: boolean;
   milestone: number;
   seenIntro: boolean;

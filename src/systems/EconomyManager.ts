@@ -7,7 +7,7 @@ const ZERO: Stats = {
   forceMult: 0, forceFlat: 0, rateMult: 0, areaMult: 0, critChance: 0.03, critMult: 2, moneyMult: 0, scrapMult: 0,
   rareChance: 0.02, contractBonus: 0, repMult: 0, autoHit: 0, feedSpeed: 0, autoPress: 0, dentMult: 0, fragMult: 0, pierce: 0,
   vsMetal: 0, vsGlass: 0, vsWood: 0, vsPlastic: 0, pressSpeed: 0, doubleHit: 0, residual: 0, domino: 0, phantom: 0,
-  resonance: 0, gravity: 0, recycle: 0, shockwave: 0, chain: 0, spMult: 0, toolDiscount: 0,
+  resonance: 0, gravity: 0, recycle: 0, shockwave: 0, chain: 0, spMult: 0, toolDiscount: 0, runTime: 0, fieldCap: 0,
 };
 
 export class EconomyManager {
@@ -34,10 +34,11 @@ export class EconomyManager {
     const st = this.save.tools[t.id];
     return (t.force + this.stats.forceFlat * (t.force / 3)) * (1 + 0.18 * st.f) * (1 + this.stats.forceMult);
   }
-  toolRate(t: ToolDef) { return t.rate * (1 + 0.09 * this.save.tools[t.id].s) * (1 + this.stats.rateMult); }
+  toolRate(t: ToolDef) { return t.rate * (1 + 0.09 * this.save.tools[t.id].s) * (1 + this.stats.rateMult) * (t.kind === 'press' ? 1 + this.stats.pressSpeed : 1); }
+
+  /** seconds per run */
+  runTime() { return 12 + this.stats.runTime; }
   toolRadius(t: ToolDef) { return t.radius * (1 + 0.06 * this.save.tools[t.id].a) * (1 + this.stats.areaMult); }
-  /** continuous tools: speed level speeds up the piston */
-  pistonSpeed(t: ToolDef) { return (1 + 0.1 * this.save.tools[t.id].s) * (1 + this.stats.pressSpeed); }
 
   /** Best pressure the company can deliver — used for contract requirements. */
   capability() {

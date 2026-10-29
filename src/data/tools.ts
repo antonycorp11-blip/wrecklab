@@ -1,15 +1,15 @@
 import type { ToolDef } from '../core/types';
 
+/** Cartoon-fantasy tools. All work the same way: hold and drag, the tool hits whatever is under it. */
 export const TOOLS: ToolDef[] = [
-  { id: 'pliers', name: 'Alicate Velho', icon: '🗜️', kind: 'pinch', force: 3, rate: 3.2, radius: 1.1, len: 18, cost: 0, rep: 0, color: '#c0392b', stage: 0, desc: 'Segure sobre o objeto para mordiscar e amassar pequenas regiões.' },
-  { id: 'hammer', name: 'Martelo', icon: '🔨', kind: 'strike', force: 10, rate: 2.1, radius: 2.4, len: 32, cost: 70, rep: 0, color: '#8e6b3e', stage: 0, desc: 'Toque onde quer bater. Cada golpe deixa um amassado localizado.' },
-  { id: 'sledge', name: 'Marreta', icon: '⚒️', kind: 'strike', force: 46, rate: 0.85, radius: 6, len: 85, cost: 1100, rep: 3, color: '#636e72', stage: 1, desc: 'Golpes lentos e devastadores, com onda de impacto.' },
-  { id: 'vise', name: 'Torno Mecânico', icon: '🧰', kind: 'vise', force: 70, rate: 0, radius: 0, len: 0, cost: 6500, rep: 8, color: '#2980b9', stage: 1, desc: 'Segure para comprimir o objeto pelas laterais, sem parar.' },
-  { id: 'press', name: 'Prensa Mecânica', icon: '🏗️', kind: 'press', force: 260, rate: 0, radius: 0, len: 0, cost: 32000, rep: 15, color: '#f39c12', stage: 2, desc: 'A primeira prensa. Segure para descer o pistão e esmagar tudo.' },
-  { id: 'hydro', name: 'Prensa Hidráulica', icon: '🛢️', kind: 'press', force: 1600, rate: 0, radius: 0, len: 0, cost: 420000, rep: 35, color: '#16a085', stage: 3, desc: 'Pressão hidráulica constante. Carros viram sanduíche.' },
-  { id: 'multi', name: 'Prensa Multipistão', icon: '🏭', kind: 'press', force: 9000, rate: 0, radius: 0, len: 0, pistons: 3, cost: 6.5e6, rareCost: 25, rep: 70, color: '#d35400', stage: 4, desc: 'Três pistões industriais descendo em sincronia.' },
-  { id: 'gravity', name: 'Compactador Gravitacional', icon: '🌀', kind: 'press', force: 60000, rate: 0, radius: 0, len: 0, cost: 1.2e8, rareCost: 120, rep: 140, color: '#8e44ad', stage: 5, desc: 'Gravidade artificial multiplica a força do pistão.' },
-  { id: 'implode', name: 'Campo de Implosão', icon: '💠', kind: 'implode', force: 450000, rate: 0, radius: 0, len: 0, cost: 4e9, rareCost: 600, rep: 260, color: '#00cec9', stage: 5, desc: 'Concentra toda a estrutura em um ponto central.' },
+  { id: 'pliers', name: 'Alicate Dentuço', icon: '🦈', kind: 'pinch', force: 4, rate: 5, radius: 36, cost: 0, rep: 0, color: '#e74c3c', stage: 0, desc: 'Um alicate com dentes de tubarão que morde tudo o que encontra.' },
+  { id: 'hammer', name: 'Martelo Carrancudo', icon: '🔨', kind: 'strike', force: 10, rate: 2.6, radius: 46, cost: 70, rep: 0, color: '#e67e22', stage: 0, desc: 'Sempre de mau humor. Achata latinhas com prazer.' },
+  { id: 'sledge', name: 'Marreta Trovão', icon: '⚡', kind: 'strike', force: 45, rate: 1.5, radius: 64, cost: 1100, rep: 3, color: '#f1c40f', stage: 1, desc: 'Cada golpe solta um trovão que amassa tudo em volta.' },
+  { id: 'press', name: 'Prensa Bocuda', icon: '👄', kind: 'press', force: 220, rate: 1.2, radius: 86, cost: 9000, rep: 8, color: '#9b59b6', stage: 2, desc: 'Uma prensa faminta. Desce com a boca aberta e mastiga a sucata.' },
+  { id: 'dragon', name: 'Prensa Dragão', icon: '🐲', kind: 'press', force: 1500, rate: 1.4, radius: 104, cost: 150000, rep: 25, color: '#27ae60', stage: 3, desc: 'Um dragão de ferro que esmaga carros e cospe faíscas.' },
+  { id: 'anvil', name: 'Bigorna Cadente', icon: '☄️', kind: 'press', force: 9000, rate: 1.5, radius: 124, cost: 3e6, rareCost: 25, rep: 60, color: '#e84393', stage: 4, desc: 'Bigornas caem do céu onde você apontar.' },
+  { id: 'gravity', name: 'Punho Gravitacional', icon: '🌀', kind: 'press', force: 60000, rate: 1.7, radius: 146, cost: 1e8, rareCost: 120, rep: 130, color: '#6c5ce7', stage: 5, desc: 'Um punho cósmico que multiplica o próprio peso.' },
+  { id: 'blackhole', name: 'Buraco Negro de Bolso', icon: '🕳️', kind: 'implode', force: 450000, rate: 2, radius: 170, cost: 4e9, rareCost: 600, rep: 250, color: '#00cec9', stage: 5, desc: 'Suga tudo para um ponto. Cuidado com os dedos.' },
 ];
 
 export const TOOL_MAP: Record<string, ToolDef> = Object.fromEntries(TOOLS.map((t) => [t.id, t]));

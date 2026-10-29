@@ -52,6 +52,7 @@ export class SkillTreeView {
     cancelAnimationFrame(this.raf);
     document.getElementById('tree')!.classList.add('hidden');
     this.e.persist();
+    this.e.ui.refreshLobby();
   }
 
   private resize() {

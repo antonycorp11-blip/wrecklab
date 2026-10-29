@@ -1,12 +1,11 @@
 import type { GameEngine } from '../core/GameEngine';
-import type { ContractDef } from '../core/types';
 import { fmt, fmtTime } from '../core/util';
 import { TOOLS, TOOL_MAP, UPGRADE_MAX } from '../data/tools';
 import { CONTRACTS } from '../data/contracts';
 import { OBJECTS } from '../data/objects';
 import { CHALLENGES } from '../data/challenges';
-import { MATERIALS } from '../data/materials';
-import { STAGES } from '../systems/ProgressionManager';
+import { stockTotal } from '../data/contracts';
+import { SCENES } from '../data/scenes';
 import { SaveManager, defaultSave } from '../systems/SaveManager';
 import type { SkillTreeView } from './SkillTreeView';
 
@@ -27,6 +26,15 @@ export class UIManager {
     $('modal').addEventListener('click', (ev) => this.onPanelClick(ev));
     $('modal').addEventListener('input', (ev) => this.onPanelInput(ev));
     window.addEventListener('keydown', (ev) => this.onKey(ev));
+    $('lobby').addEventListener('click', (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-lb]');
+      if (!b) return;
+      e.audio.unlock(); e.audio.click();
+      const k = b.dataset.lb!;
+      if (k === 'run') e.startRun();
+      else if (k === 'tree') this.treeView.open();
+      else this.openPanel(k as PanelId);
+    });
     $('toolbar').addEventListener('click', (ev) => {
       const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-tool]');
       if (b) { e.audio.unlock(); e.equip(b.dataset.tool!); }
@@ -48,7 +56,7 @@ export class UIManager {
     this.setRes('r-rare', fmt(s.rare));
     this.setRes('r-sp', fmt(s.sp));
     this.setRes('r-rep', fmt(s.rep));
-    $('stage').textContent = STAGES[this.e.prog.stage()].name;
+    $('stage').textContent = SCENES[this.e.scene]?.name ?? '';
     this.renderContractHud();
     this.renderObjectHud();
     this.refreshTools();
@@ -84,30 +92,25 @@ export class UIManager {
   }
 
   private renderContractHud() {
-    const c = this.e.contracts;
+    const e = this.e, c = e.contracts;
     const el = $('contract-hud');
     if (!c.active) { el.innerHTML = `<div class="cn">Sem contrato</div><div class="cl">Abra 📋 Contratos</div>`; return; }
-    const a = c.active;
-    const q = c.queue.map((_, i) => `<span class="${i < c.idx ? 'done' : i === c.idx ? 'cur' : ''}"></span>`).join('');
-    const over = c.time > a.par;
+    const a = c.active, total = c.total(), done = c.crushed();
     el.innerHTML = `<div class="cn">#${a.num} ${a.name}</div><div class="cl">${a.client}</div>
-      <div class="row"><span>Objetos ${c.idx}/${c.queue.length}</span><span style="color:${over ? '#ff8a80' : '#7bed9f'}">⏱ ${fmtTime(c.time)} / ${fmtTime(a.par)}</span></div>
-      <div class="bar"><div style="width:${(c.idx / c.queue.length) * 100}%"></div></div>
-      <div class="queue">${q}</div>
-      <div class="row" style="margin-top:4px"><span>💵 ${fmt(a.money)}</span><span>⚙️ ${fmt(a.scrap)}</span><span>⭐ ${a.rep}</span></div>`;
+      <div class="row"><span>Itens ${done}/${total}</span><span>Run ${c.runs}</span></div>
+      <div class="bar"><div style="width:${(done / total) * 100}%"></div></div>
+      ${e.phase !== 'lobby' ? `<div class="row"><span>Nesta run: ${e.run.crushed}</span><span>💵 ${fmt(e.run.money)}</span></div>` : ''}`;
   }
 
+  /** big run timer at the top */
   private renderObjectHud() {
-    const o = this.e.obj;
+    const e = this.e;
     const el = $('object-hud');
-    if (!o || this.e.phase === 'done') { el.innerHTML = ''; return; }
-    const tool = this.e.tool;
-    const eff = this.e.econ.efficiency(this.e.econ.toolForce(tool), o.def.hardness, o.def.mat);
-    const [label, color] = eff < 0.2 ? ['Pressão insuficiente', '#ff6b6b'] : eff < 0.6 ? ['Resistente', '#feca57'] : eff < 1.2 ? ['Eficaz', '#7bed9f'] : ['Esmagador', '#48dbfb'];
-    el.innerHTML = `<div class="on">${o.def.name}</div>
-      <div class="om">${MATERIALS[o.def.mat].name} · ${o.def.size} · dureza ${fmt(o.def.hardness)}</div>
-      <div class="bar"><div style="width:${Math.max(0, (o.hp / o.maxHp) * 100)}%"></div></div>
-      <div class="eff" style="color:${color}">${label} · ${fmt(Math.max(0, o.hp))} / ${fmt(o.maxHp)}</div>`;
+    if (e.phase === 'lobby') { el.innerHTML = ''; return; }
+    const k = e.runLen ? e.timeLeft / e.runLen : 0;
+    const low = e.timeLeft < 3;
+    el.innerHTML = `<div class="on ${low ? 'low' : ''}">⏱ ${e.timeLeft.toFixed(1)}s</div>
+      <div class="bar timer"><div style="width:${Math.max(0, k * 100)}%"></div></div>`;
   }
 
   refreshTools() {
@@ -122,12 +125,7 @@ export class UIManager {
   private renderHint() {
     const e = this.e, s = e.save;
     let h = '';
-    const kind = e.tool.kind;
-    const cont = kind === 'press' || kind === 'vise' || kind === 'implode';
-    if (e.phase === 'work' && s.stats.destroyed < 3) h = kind === 'pinch' ? '👆 Segure sobre o objeto para amassar' : cont ? 'Segure em qualquer lugar para acionar a máquina' : 'Toque no objeto para golpear';
-    else if (s.stats.destroyed >= 3 && !s.tools.hammer.owned && s.money >= 70) h = '🛒 Você já pode comprar o Martelo!';
-    else if (e.tree.ownedCount() <= 1 && e.tree.affordableCount() > 0) h = '🌳 Abra a Árvore de Habilidades e compre sua primeira melhoria';
-    else if (cont && e.phase === 'work' && !e.tools.active && s.stats.destroyed < 400) h = 'Segure em qualquer lugar para acionar a máquina';
+    if (e.phase === 'run' && s.stats.runs <= 2) h = e.input.touch ? '👆 Segure e arraste sobre os itens' : '🖱️ Segure o botão e arraste sobre os itens';
     const el = $('hint');
     if (el.textContent !== h) el.textContent = h;
   }
@@ -141,16 +139,40 @@ export class UIManager {
     setTimeout(() => el.remove(), 4200);
   }
 
-  flashObjectDone() { /* reserved for HUD effects on destruction */ }
-
-  showContractDone(c: ContractDef, r: { money: number; scrap: number; rep: number; sp: number; first: boolean; fast: boolean }, time: number) {
-    const b = $('banner');
-    b.innerHTML = `<h3>CONTRATO ${c.num} CONCLUÍDO!</h3><div>${c.name} · ⏱ ${fmtTime(time)}${r.fast ? ' · <b style="color:#7bed9f">BÔNUS DE RAPIDEZ</b>' : ''}</div>
-      <div class="rw">💵 +${fmt(r.money)} &nbsp; ⚙️ +${fmt(r.scrap)} &nbsp; ⭐ +${r.rep}${r.sp ? ` &nbsp; 🧠 +${r.sp}` : ''}</div>
-      ${r.first ? '<div class="sub" style="margin-top:6px;color:#f2a516">Primeira conclusão! Novos contratos podem estar disponíveis.</div>' : this.e.save.autoRepeat ? '<div class="sub" style="margin-top:6px;color:#a8987f">Repetindo contrato…</div>' : ''}`;
-    b.classList.add('show');
-    setTimeout(() => b.classList.remove('show'), 2600);
+  // ------------------------------------------------------------- lobby (between runs)
+  showLobby(kind: 'intro' | 'summary' | 'complete', data?: any) {
+    const e = this.e, c = e.contracts.active;
+    const el = $('lobby');
+    let h = '';
+    if (kind === 'complete') {
+      h = `<div class="lb-tag">CONTRATO CONCLUÍDO!</div><h2>${data.contract.name}</h2>
+        <p class="quote">${data.contract.client}: "Obrigado! Ficou tudo um bloquinho só."</p>
+        <div class="lb-rw">💵 +${fmt(data.money)} &nbsp; ⚙️ +${fmt(data.scrap)} &nbsp; ⭐ +${data.rep}${data.sp ? ` &nbsp; 🧠 +${data.sp}` : ''}</div>
+        <div class="sub">Concluído em ${data.runs} run${data.runs > 1 ? 's' : ''}.</div>
+        <div class="lb-btns"><button class="btn big" data-lb="contracts">📋 Escolher próximo contrato</button><button class="btn alt" data-lb="tree">🌳 Árvore</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button></div>`;
+    } else if (kind === 'intro' && c) {
+      const items = c.stock.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
+      h = `<div class="lb-tag">CONTRATO #${c.num}</div><h2>${c.name}</h2><div class="sub">${c.client}</div>
+        <p>${c.story}</p><p class="quote">${c.quote}</p>
+        <div class="chips">${items}</div>
+        <div class="sub">${e.contracts.crushed()}/${e.contracts.total()} itens esmagados · cada run dura ${e.econ.runTime().toFixed(0)}s</div>
+        <div class="lb-btns"><button class="btn big" data-lb="run">▶ ${e.contracts.runs ? 'Continuar' : 'Começar'} run</button><button class="btn alt" data-lb="tree">🌳 Árvore</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button><button class="btn alt" data-lb="contracts">📋</button></div>`;
+    } else if (c) {
+      const r = e.run;
+      h = `<div class="lb-tag">FIM DA RUN ${e.contracts.runs}</div><h2>${c.name}</h2>
+        <div class="lb-stats"><div><b>${r.crushed}</b><span>esmagados</span></div><div><b>💵 ${fmt(r.money)}</b><span>dinheiro</span></div><div><b>⚙️ ${fmt(r.scrap)}</b><span>sucata</span></div>${r.rare ? `<div><b>💎 ${r.rare}</b><span>raros</span></div>` : ''}</div>
+        <div class="bar"><div style="width:${(e.contracts.crushed() / e.contracts.total()) * 100}%"></div></div>
+        <div class="sub">Contrato: ${e.contracts.crushed()}/${e.contracts.total()} · faltam ${e.contracts.remaining()} itens</div>
+        <div class="lb-btns"><button class="btn big" data-lb="run">▶ Nova run (${e.econ.runTime().toFixed(0)}s)</button><button class="btn alt" data-lb="tree">🌳 Árvore${e.tree.affordableCount() ? ` (${e.tree.affordableCount()})` : ''}</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button></div>`;
+    }
+    el.innerHTML = `<div class="lb-card">${h}</div>`;
+    el.classList.remove('hidden');
+    this.lobbyKind = kind;
   }
+  private lobbyKind: 'intro' | 'summary' | 'complete' = 'intro';
+  hideLobby() { $('lobby').classList.add('hidden'); }
+  /** re-render the lobby after upgrades (run time, affordability) */
+  refreshLobby() { if (this.e.phase === 'lobby' && this.lobbyKind !== 'complete' && !$('lobby').classList.contains('hidden')) this.showLobby(this.lobbyKind); }
 
   // ------------------------------------------------------------- panels
   openPanel(id: PanelId) {
@@ -158,7 +180,7 @@ export class UIManager {
     $('modal').classList.remove('hidden');
     this.renderPanel();
   }
-  closePanel() { this.panel = null; $('modal').classList.add('hidden'); }
+  closePanel() { this.panel = null; $('modal').classList.add('hidden'); this.refreshLobby(); }
 
   private renderPanel(keepScroll = false) {
     const body = $('panel-body');
@@ -173,22 +195,24 @@ export class UIManager {
   private contractsHtml() {
     const e = this.e, s = e.save;
     const cap = e.econ.capability();
-    let h = `<div class="set"><label>Pressão máxima da empresa: <b>${fmt(cap)}</b> · Reputação: <b>${fmt(s.rep)}</b></label>
-      <label style="flex:0"><input type="checkbox" data-set="autoRepeat" ${s.autoRepeat ? 'checked' : ''}/> Repetir contrato automaticamente</label></div><div class="grid">`;
+    let h = `<div class="set"><label>Pressão máxima da empresa: <b>${fmt(cap)}</b> · Reputação: <b>${fmt(s.rep)}</b></label></div><div class="grid">`;
     let shownLocked = 0;
     for (const c of CONTRACTS) {
       const lock = e.contracts.lockReasons(c);
       if (lock.length && shownLocked++ >= 2) continue;
       const rec = s.contracts[c.id];
       const active = e.contracts.active?.id === c.id;
-      const items = c.items.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
+      const items = c.stock.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
+      const prog = active ? `<div class="bar"><div style="width:${(e.contracts.crushed() / e.contracts.total()) * 100}%"></div></div><div class="sub">${e.contracts.crushed()}/${e.contracts.total()} · ${e.contracts.runs} runs</div>` : '';
       h += `<div class="item ${lock.length ? 'locked' : ''} ${active ? 'active' : ''}">
         <h4><span class="sub">#${c.num}</span> ${c.name}</h4>
-        <div class="sub">${c.client} — ${c.desc}</div>
+        <div class="sub">${c.client} · ${SCENES[c.scene].name}</div>
+        <div>${c.story}</div>
         <div class="chips">${items}</div>
-        <div class="row"><span>💵 ${fmt(c.money)} · ⚙️ ${fmt(c.scrap)} · ⭐ ${c.rep}${!rec?.done ? ` · 🧠 ${c.sp}` : ''}</span><span class="sub">meta ${fmtTime(c.par)}</span></div>
-        ${rec?.done ? `<div class="sub">✔ Concluído ${rec.done}× · melhor ${fmtTime(rec.best)}</div>` : ''}
-        ${lock.length ? `<div class="chips">${lock.map((l) => `<span class="chip bad">🔒 ${l}</span>`).join('')}</div>` : `<button class="btn" data-contract="${c.id}">${active ? 'Reiniciar' : 'Aceitar contrato'}</button>`}
+        <div class="row"><span>💵 ${fmt(c.money)} · ⚙️ ${fmt(c.scrap)} · ⭐ ${c.rep}${!rec?.done ? ` · 🧠 ${c.sp}` : ''}</span><span class="sub">${stockTotal(c)} itens</span></div>
+        ${prog}
+        ${rec?.done ? `<div class="sub">✔ Concluído ${rec.done}× · melhor: ${rec.runs} runs</div>` : ''}
+        ${lock.length ? `<div class="chips">${lock.map((l) => `<span class="chip bad">🔒 ${l}</span>`).join('')}</div>` : active ? `<button class="btn" data-close>Continuar</button>` : `<button class="btn" data-contract="${c.id}">${rec?.done ? 'Refazer (recompensa menor)' : 'Aceitar contrato'}</button>`}
       </div>`;
     }
     return h + '</div>';
@@ -202,20 +226,17 @@ export class UIManager {
       const st = s.tools[t.id];
       const force = ec.toolForce(t);
       if (!st.owned && s.rep < t.rep && shownLocked++ >= 2) continue;
-      const stats = t.kind === 'pinch' || t.kind === 'strike'
-        ? `Força ${fmt(force)} · ${ec.toolRate(t).toFixed(1)} golpes/s · área ${ec.toolRadius(t).toFixed(1)} cm`
-        : `Pressão ${fmt(force)}/s · pistão ${ec.pistonSpeed(t).toFixed(2)}×`;
+      const stats = `Força ${fmt(force)} · ${ec.toolRate(t).toFixed(1)} golpes/s · alcance ${Math.round(ec.toolRadius(t))}`;
       h += `<div class="item ${!st.owned && ec.canBuyTool(t.id) ? 'locked' : ''} ${s.equipped === t.id ? 'active' : ''}">
         <h4><span class="ic">${t.icon}</span>${t.name}</h4><div class="sub">${t.desc}</div><div>${stats}</div>`;
       if (st.owned) {
         const up = (k: 'f' | 's' | 'a', label: string) => {
           const lvl = st[k];
-          if (k === 'a' && t.kind !== 'pinch' && t.kind !== 'strike') return `<button class="btn" disabled>—</button>`;
           if (lvl >= UPGRADE_MAX) return `<button class="btn" disabled>${label}<br>MÁX</button>`;
           const p = ec.upgradePrice(t, k);
           return `<button class="btn alt" data-up="${t.id}:${k}" ${s.money < p ? 'disabled' : ''}>${label} ${lvl}<br>💵 ${fmt(p)}</button>`;
         };
-        h += `<div class="ups">${up('f', 'Força')}${up('s', t.kind === 'pinch' || t.kind === 'strike' ? 'Veloc.' : 'Pistão')}${up('a', 'Área')}</div>
+        h += `<div class="ups">${up('f', 'Força')}${up('s', 'Veloc.')}${up('a', 'Área')}</div>
           ${s.equipped === t.id ? '<div class="sub" style="color:#f2a516">✔ Equipada</div>' : `<button class="btn good" data-equip="${t.id}">Equipar</button>`}`;
       } else {
         const why = ec.canBuyTool(t.id);
@@ -278,8 +299,8 @@ export class UIManager {
     if (!t) return;
     const d = t.dataset;
     if (d.close !== undefined) { this.closePanel(); return; }
-    if (d.contract) { this.closePanel(); e.startContract(d.contract); e.audio.click(); return; }
-    if (d.buy) { if (e.econ.buyTool(d.buy)) { e.audio.buy(); this.toast(`${TOOL_MAP[d.buy].name} adquirida!`, TOOL_MAP[d.buy].icon); e.prog.onToolSwitch(d.buy); e.tools.reset(e); this.toolsKey = ''; } }
+    if (d.contract) { this.closePanel(); e.openContract(d.contract); e.audio.click(); return; }
+    if (d.buy) { if (e.econ.buyTool(d.buy)) { e.audio.buy(); this.toast(`${TOOL_MAP[d.buy].name} adquirida!`, TOOL_MAP[d.buy].icon); e.prog.onToolSwitch(d.buy); this.toolsKey = ''; } }
     if (d.up) { const [id, k] = d.up.split(':'); if (e.econ.buyUpgrade(id, k as 'f')) e.audio.buy(); }
     if (d.equip) e.equip(d.equip);
     if (d.claim) {
@@ -303,6 +324,7 @@ export class UIManager {
     e.persist();
     this.renderPanel(true);
     this.update(1);
+    this.refreshLobby();
   }
 
   toggleFullscreen() {
@@ -318,6 +340,7 @@ export class UIManager {
     if ((ev.target as HTMLElement).tagName === 'TEXTAREA') return;
     const e = this.e;
     if (ev.key === 'Escape') { this.closePanel(); this.treeView.close(); return; }
+    if ((ev.key === ' ' || ev.key === 'Enter') && e.phase === 'lobby' && !this.panel && !this.treeView.isOpen && e.contracts.active) { ev.preventDefault(); e.startRun(); return; }
     if (ev.key === 't' || ev.key === 'T') { this.treeView.isOpen ? this.treeView.close() : (this.closePanel(), this.treeView.open()); return; }
     if (ev.key === 'f' || ev.key === 'F') { this.panel === 'shop' ? this.closePanel() : this.openPanel('shop'); return; }
     if (ev.key === 'c' || ev.key === 'C') { this.panel === 'contracts' ? this.closePanel() : this.openPanel('contracts'); return; }

@@ -66,11 +66,24 @@ const FAMILIES: Family[] = [
     ],
   },
   {
+    id: 'Fôlego', color: '#1abc9c', angle: 120,
+    spine: [
+      ['Fôlego', '🫁', 'runTime', 2], ['Turno Extra', '⏱️', 'runTime', 2], ['Mesa Cheia', '🧺', 'fieldCap', 2],
+      ['Café Forte', '☕', 'runTime', 3], ['Segundo Fôlego', '💨', 'runTime', 3], ['Pilha de Sucata', '🗑️', 'fieldCap', 3],
+      ['Hora Extra', '🕰️', 'runTime', 4], ['Resistência', '🛡️', 'runTime', 4], ['Montanha de Tralha', '⛰️', 'fieldCap', 4],
+      ['Jornada Dupla', '🌗', 'runTime', 6], ['Tempo Esticado', '🌀', 'runTime', 8], ['Eternidade', '♾️', 'runTime', 5],
+    ],
+    side: [
+      ['Lanche', '🥪', 'runTime', 1], ['Reposição Rápida', '📦', 'feedSpeed', 0.15], ['Mais Bagunça', '🧸', 'fieldCap', 1],
+      ['Alongamento', '🧘', 'runTime', 1], ['Organização', '🗂️', 'scrapMult', 0.08], ['Pausa do Café', '☕', 'runTime', 1.5],
+    ],
+  },
+  {
     id: 'Automação', color: '#9b59b6', angle: 150,
     spine: [
       ['Alimentação Automática', '📦', 'feedSpeed', 0.25], ['Retirada Automática', '🧺', 'feedSpeed', 0.25], ['Martelo Auxiliar', '🤖', 'autoHit', 0.4],
       ['Ciclos Programados', '🗓️', 'autoHit', 0.4], ['Pistão Fantasma', '👻', 'phantom', 0.15], ['Prensas Auxiliares', '🏗️', 'autoHit', 0.6],
-      ['Operação Simultânea', '⚙️', 'autoHit', 0.8], ['Prensa Autônoma', '🦿', 'autoPress', 1], ['Linha de Montagem', '🏭', 'autoHit', 1],
+      ['Operação Simultânea', '⚙️', 'autoHit', 0.8], ['Esmagador Autônomo', '🦿', 'autoHit', 1], ['Linha de Montagem', '🏭', 'autoHit', 1],
       ['IA de Demolição', '🧠', 'autoHit', 1.5], ['Fábrica Escura', '🌘', 'phantom', 0.25], ['Singularidade Fabril', '♾️', 'autoHit', 2.5],
     ],
     side: [
@@ -101,7 +114,7 @@ const STAT_LABEL: Record<StatKey, (v: number) => string> = {
   feedSpeed: (v) => `+${Math.round(v * 100)}% velocidade de esteira`, autoPress: () => `ferramentas contínuas operam sozinhas`, dentMult: (v) => `+${Math.round(v * 100)}% deformação visual`,
   fragMult: (v) => `+${Math.round(v * 100)}% fragmentos`, pierce: (v) => `-${Math.round(v * 100)}% dureza efetiva`, vsMetal: (v) => `+${Math.round(v * 100)}% contra metal`,
   vsGlass: (v) => `+${Math.round(v * 100)}% contra vidro`, vsWood: (v) => `+${Math.round(v * 100)}% contra madeira`, vsPlastic: (v) => `+${Math.round(v * 100)}% contra plástico`,
-  pressSpeed: (v) => `+${Math.round(v * 100)}% velocidade de pistão`, doubleHit: (v) => `+${Math.round(v * 100)}% chance de golpe duplo`, residual: (v) => `+${Math.round(v * 100)}% compressão residual`,
+  pressSpeed: (v) => `+${Math.round(v * 100)}% velocidade das prensas`, runTime: (v) => `+${v}s de tempo por run`, fieldCap: (v) => `+${v} itens no cenário`, doubleHit: (v) => `+${Math.round(v * 100)}% chance de golpe duplo`, residual: (v) => `+${Math.round(v * 100)}% compressão residual`,
   domino: (v) => `+${Math.round(v * 100)}% chance de ruptura em cadeia`, phantom: (v) => `pistão fantasma +${Math.round(v * 100)}% frequência`, resonance: (v) => `+${(v * 100).toFixed(1)}% ressonância por golpe`,
   gravity: (v) => `+${Math.round(v * 100)}% chance de compressão gravitacional`, recycle: (v) => `+${Math.round(v * 100)}% bônus ao próximo objeto`, shockwave: (v) => `+${Math.round(v * 100)}% onda de choque`,
   chain: (v) => `+${Math.round(v * 100)}% dano em cadeia`, spMult: (v) => `+${Math.round(v * 100)}% pontos de habilidade`, toolDiscount: (v) => `-${Math.round(v * 100)}% preço de ferramentas`,
@@ -118,20 +131,20 @@ const SPECIAL_DESC: Record<string, string> = {
   'Reciclagem Explosiva': 'Concluir um objeto dá bônus de dano ao próximo.',
   'Onda de Choque': 'Golpes emitem uma onda que deforma a área ao redor.',
   'Compressão em Cadeia': 'Parte do dano se propaga pelos componentes.',
-  'Prensa Autônoma': 'Ferramentas contínuas operam sozinhas quando você não segura.',
+  'Esmagador Autônomo': 'Um robozinho esmaga itens sozinho durante a run.',
   'Martelo Auxiliar': 'Um braço robótico golpeia o objeto automaticamente.',
 };
 
 const MILESTONES: Record<number, { tool?: string; rep?: number; label: string }> = {
   3: { rep: 3, label: 'Reputação 3' },
   6: { tool: 'sledge', label: 'Requer Marreta' },
-  8: { tool: 'press', label: 'Requer Prensa Mecânica' },
-  10: { tool: 'hydro', label: 'Requer Prensa Hidráulica' },
-  11: { tool: 'gravity', label: 'Requer Compactador Gravitacional' },
+  8: { tool: 'press', label: 'Requer Prensa Bocuda' },
+  10: { tool: 'dragon', label: 'Requer Prensa Dragão' },
+  11: { tool: 'gravity', label: 'Requer Punho Gravitacional' },
 };
 
 function tierCost(ring: number): { cost: number; curr: SkillCurrency } {
-  return { cost: Math.round(6 * Math.pow(3.1, ring)), curr: 'scrap' };
+  return { cost: Math.round(4 * Math.pow(3, ring)), curr: 'scrap' };
 }
 
 export function buildSkillTree(): SkillNode[] {
@@ -141,6 +154,7 @@ export function buildSkillTree(): SkillNode[] {
   const spineIds: string[][] = [];
   FAMILIES.forEach((fam, fi) => {
     const ids: string[] = [];
+    fam.angle = -90 + (360 / FAMILIES.length) * fi;
     const a = (fam.angle * Math.PI) / 180;
     const dx = Math.cos(a), dy = Math.sin(a);
     const px = -dy, py = dx;
@@ -192,7 +206,7 @@ export function buildSkillTree(): SkillNode[] {
   // cross links between neighbouring families
   const CROSS: [string, string, StatKey, number][] = [
     ['Golpe Pesado', '🔨', 'forceMult', 0.2], ['Martelada Elástica', '🎾', 'areaMult', 0.1], ['Rendimento Industrial', '📦', 'moneyMult', 0.2],
-    ['Lucro Automático', '🤖', 'autoHit', 0.5], ['Sorte Programada', '🎲', 'critChance', 0.03], ['Fúria Bruta', '😤', 'critMult', 0.4],
+    ['Fôlego de Ouro', '🪙', 'moneyMult', 0.2], ['Lucro Automático', '🤖', 'autoHit', 0.5], ['Sorte Programada', '🎲', 'critChance', 0.03], ['Fúria Bruta', '😤', 'critMult', 0.4],
   ];
   FAMILIES.forEach((_fam, fi) => {
     const fj = (fi + 1) % FAMILIES.length;

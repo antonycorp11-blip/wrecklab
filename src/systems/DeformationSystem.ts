@@ -48,7 +48,7 @@ export class WreckObject {
   private maxOff = 1;
   private wrinkleFreq = 8;
 
-  constructor(public def: ObjectDef, hpMult = 1) {
+  constructor(public def: ObjectDef, hpMult = 1, detail = 46) {
     this.maxHp = this.hp = def.hp * hpMult;
     const specs = def.build().slice().sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     let x0 = 1e9, x1 = -1e9, y1 = 0;
@@ -57,7 +57,7 @@ export class WreckObject {
     }
     this.W = x1 - x0;
     this.H = y1;
-    const step = Math.max(this.W, this.H) / 46;
+    const step = Math.max(this.W, this.H) / detail;
     this.maxOff = Math.max(this.W, this.H) * 0.26;
     this.wrinkleFreq = 6 + Math.random() * 5;
     for (const spec of specs) {
