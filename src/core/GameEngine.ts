@@ -332,16 +332,27 @@ export class GameEngine {
   strikeAt(sx: number, sy: number, tool: ToolDef) {
     const o = this.obj!;
     const rL = this.econ.toolRadius(tool) / this.view.cpu;
-    let [lx, ly] = this.toLocal(sx, sy);
-    const m = rL * 0.6 + 34 / this.view.zoom; // generous margin for fingers
-    if (lx < o.rawLeft - m || lx > o.rawRight + m || ly < o.rawTop - m || ly > m) {
+    const [ax, ay] = this.toLocal(sx, sy);
+    // snap to the nearest point of the object's surface
+    let best = 1e18, lx = ax, ly = ay;
+    for (const p of o.parts) {
+      if (p.detached) continue;
+      for (let i = 0; i < p.n; i++) {
+        const dx = p.cur[i * 2] - ax, dy = p.cur[i * 2 + 1] - ay, d = dx * dx + dy * dy;
+        if (d < best) { best = d; lx = p.cur[i * 2]; ly = p.cur[i * 2 + 1]; }
+      }
+    }
+    const inside = ax >= o.rawLeft && ax <= o.rawRight && ay >= o.rawTop && ay <= 0;
+    if (inside) { lx = ax; ly = ay; }
+    // pliers always bite the closest spot; hammers need to land reasonably close
+    const reach = rL + 60 / this.view.zoom;
+    if (tool.kind !== 'pinch' && !inside && Math.sqrt(best) > reach) {
       this.particles.burst(PK.Dust, sx, sy, 3, 40, '#aaa', 8, 0.4);
       return;
     }
-    lx = clamp(lx, o.rawLeft, o.rawRight);
-    ly = clamp(ly, o.rawTop, 0);
     const [rx, ry] = o.toRest(lx, ly);
     const [hx, hy] = this.toScreen(lx, ly);
+    this.tools.bite = { x: hx, y: hy, t: 0.15 };
     this.hit(rx, ry, this.econ.toolForce(tool), rL, tool.kind === 'pinch' ? 'pinch' : 'dent', hx, hy, false);
   }
 

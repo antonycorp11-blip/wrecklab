@@ -12,6 +12,8 @@ export class ToolSystem {
   strain = 0;
   autoFx: { x: number; y: number; t: number }[] = [];
   phantomAnim = -1;
+  /** last snapped contact point (screen px), so the tool visibly bites the object */
+  bite = { x: 0, y: 0, t: 0 };
 
   reset(e: GameEngine) {
     const o = e.obj;
@@ -28,16 +30,18 @@ export class ToolSystem {
     const working = e.phase === 'work' && !!obj;
     this.cd -= dt;
     this.swing = Math.max(0, this.swing - dt * 7);
+    this.bite.t -= dt;
     for (const f of this.autoFx) f.t -= dt;
     this.autoFx = this.autoFx.filter((f) => f.t > 0);
-    const inPlay = inp.y < e.view.floorY + 60;
+    // DOM buttons capture their own touches, so anywhere on the canvas counts (incl. the bench below the object)
+    const inPlay = true;
     const pressed = inp.consumePress() && inPlay;
     this.held = inp.down && inPlay;
 
     if (tool.kind === 'pinch' || tool.kind === 'strike') {
       this.active = false;
       if (working && (this.held || pressed) && this.cd <= 0) {
-        e.strikeAt(inp.x, inp.y, tool);
+        e.strikeAt(inp.aimX, inp.aimY, tool);
         this.cd = 1 / e.econ.toolRate(tool);
         this.swing = 1;
       } else if (pressed && !working) this.swing = 1;

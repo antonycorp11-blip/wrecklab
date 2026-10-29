@@ -47,5 +47,10 @@ export class InputManager {
     this.y = e.clientY - r.top;
   }
 
+  /** Aim point: on touch it sits above the finger so the tool is never hidden under it. */
+  get aimX() { return this.x; }
+  get aimY() { return this.touch ? Math.max(0, this.y - InputManager.TOUCH_OFFSET) : this.y; }
+  static TOUCH_OFFSET = 90;
+
   consumePress() { const p = this.justPressed; this.justPressed = false; return p; }
 }

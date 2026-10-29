@@ -430,11 +430,20 @@ export class Renderer {
     const e = this.e, inp = e.input, tool = e.tool, l = this.l, P = this.P;
     if (tool.kind !== 'pinch' && tool.kind !== 'strike') return;
     const visible = inp.touch ? this.touchT > 0 || inp.down : inp.hover || inp.down;
-    if (!visible || inp.y > e.view.floorY + 60) return;
+    if (!visible) return;
+    // while biting, the tool sits on the snapped contact point
+    const ax = e.tools.bite.t > 0 ? e.tools.bite.x : inp.aimX, ay = e.tools.bite.t > 0 ? e.tools.bite.y : inp.aimY;
+    if (inp.touch) {
+      // finger ring + dotted link up to the aim point
+      l.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let yy = inp.y - P * 4; yy > ay + P * 4; yy -= P * 3) l.fillRect(Math.round(inp.x / P) * P, Math.round(yy / P) * P, P, P);
+      l.strokeStyle = 'rgba(255,255,255,0.4)'; l.lineWidth = P;
+      l.strokeRect(Math.round(inp.x / P) * P - P * 5, Math.round(inp.y / P) * P - P * 5, P * 10, P * 10);
+    }
     const sw = e.tools.swing;
     // tools are modelled in real cm; scale so the drawn length matches toolDrawLen()
     const k = e.pxPerCm * (e.toolDrawLen() / tool.len);
-    const x = Math.round(inp.x / P) * P, y = Math.round(inp.y / P) * P;
+    const x = Math.round(ax / P) * P, y = Math.round(ay / P) * P;
     // aim marker
     l.fillStyle = 'rgba(255,255,255,0.7)';
     for (const [dx, dy] of [[-3, 0], [2, 0], [0, -3], [0, 2]]) l.fillRect(x + dx * P, y + dy * P, P, P);
@@ -442,19 +451,24 @@ export class Renderer {
     l.translate(x, y);
     l.lineJoin = 'miter';
     if (tool.kind === 'pinch') {
-      // pliers: jaw tips at the pointer, handles up-right
-      l.rotate(-0.75);
-      const open = 0.22 * (1 - sw) + 0.015;
-      for (const s of [1, -1]) {
-        l.save();
-        l.translate(5 * k, 0); l.rotate(-s * open); l.translate(-5 * k, 0);
-        this.poly([0, -0.1 * s, 1.5, -0.55 * s, 5.5, -1.0 * s, 6, -0.2 * s, 0.2, 0], '#9aa4aa', k);
-        this.poly([5.5, -0.3 * s, 18, -1.6 * s, 18, -2.5 * s, 5.5, -1.1 * s], '#7f8c8d', k);
-        this.poly([9, -0.75 * s, 18.3, -1.5 * s, 18.3, -2.7 * s, 9, -1.5 * s], tool.color, k);
-        l.restore();
+      // toothed pliers: the object sits between the serrated jaws, which bite as you squeeze
+      l.rotate(-0.55);
+      l.translate(-3 * k, 0);
+      const gap = Math.max(0.8, e.econ.toolRadius(tool) * 0.9) * (1 - sw * 0.85);
+      for (const s of [-1, 1]) {
+        const g = gap * s;
+        // jaw with teeth on the inner edge
+        const jaw: number[] = [0, g + 0.9 * s, 6, g + 1.2 * s];
+        jaw.push(6.5, g * 0.35);
+        for (let x = 6; x >= 0.3; x -= 0.7) jaw.push(x, g, x - 0.35, g - 0.4 * s);
+        jaw.push(0, g);
+        this.poly(jaw, '#a5aeb3', k);
+        // handle, closing together with the jaws
+        const hs = 0.55 + 0.45 * (1 - sw * 0.85);
+        this.poly([6.2, g * 0.3 + 0.5 * s, 20, (1.2 + 1.6 * hs) * s, 20, (2.2 + 1.6 * hs) * s, 6.2, g * 0.3 + 1.4 * s], '#7f8c8d', k);
+        this.poly([10, (0.9 + 0.9 * hs) * s, 20.4, (1.1 + 1.6 * hs) * s, 20.4, (2.4 + 1.6 * hs) * s, 10, (1.9 + 0.9 * hs) * s], tool.color, k);
       }
-      this.poly([4.4, -0.6, 5.6, -0.6, 5.6, 0.6, 4.4, 0.6], '#d0d6d9', k);
-      l.fillStyle = '#ffffff99'; l.fillRect(1 * k, -P, 3 * k, P);
+      this.poly([5.7, -0.7, 7, -0.7, 7, 0.7, 5.7, 0.7], '#d0d6d9', k);
     } else {
       const big = tool.id === 'sledge';
       const L = tool.len, hw = big ? 16 : 10, hh = big ? 7 : 3.6;

@@ -50,7 +50,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sbtn i { position: absolute; top: -4px; right: -4px; background: var(--bad); color: #fff; font-style: normal; font-size: 10px; font-weight: 800; border-radius: 3px; padding: 2px 5px; display: none; }
 .sbtn i.on { display: block; }
 
-#toolbar { position: absolute; bottom: calc(6px + var(--sab)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 5px; background: #0009; border-radius: 3px; border: 1px solid #fff1; max-width: calc(100vw - 150px); overflow-x: auto; }
+#toolbar { position: absolute; bottom: calc(6px + var(--sab)); left: calc(8px + var(--sal)); display: flex; gap: 6px; padding: 5px; background: #0009; border-radius: 3px; border: 1px solid #fff1; max-width: 30vw; overflow-x: auto; }
 .tool { min-width: 58px; height: 50px; border-radius: 3px; border: 2px solid transparent; background: #2a231c; font-size: 22px; position: relative; padding: 0 6px; }
 .tool small { position: absolute; left: 4px; top: 2px; font-size: 9px; color: var(--dim); }
 .tool.on { border-color: var(--accent); background: #3d2f1c; box-shadow: 0 0 12px #f2a51655; }
@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 #hint { position: absolute; left: 50%; top: calc(122px + var(--sat)); transform: translateX(-50%); background: #000b; padding: 7px 14px; border-radius: 3px; font-size: 13px; pointer-events: none !important; transition: opacity .4s; white-space: nowrap; }
 #hint:empty { opacity: 0; }
-#toasts { position: absolute; left: calc(8px + var(--sal)); bottom: calc(70px + var(--sab)); display: flex; flex-direction: column; gap: 5px; pointer-events: none !important; max-width: 40vw; }
+#toasts { position: absolute; left: calc(8px + var(--sal)); bottom: calc(76px + var(--sab)); display: flex; flex-direction: column; gap: 5px; pointer-events: none !important; max-width: 40vw; }
 .toast { background: #1d1813f0; border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 3px; font-size: 12px; animation: tin .25s; }
 @keyframes tin { from { transform: translateX(-20px); opacity: 0; } }
 #banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%) scale(.8); opacity: 0; pointer-events: none !important; text-align: center; transition: all .3s; background: #120f0cf0; border: 2px solid var(--accent); border-radius: 3px; padding: 14px 26px; min-width: 280px; }
