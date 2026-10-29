@@ -19,6 +19,8 @@ export class ParticleSystem {
   texts: FloatText[] = [];
   /** 0..1 global multiplier for spawn counts (lowered on slow devices) */
   quality = 1;
+  /** css px per art pixel (minimum line width) */
+  px = 1;
 
   constructor(cap = 1600) {
     this.cap = cap;
@@ -95,8 +97,8 @@ export class ParticleSystem {
       ctx.translate(d.x, d.y); ctx.rotate(d.rot);
       ctx.beginPath();
       for (let i = 0; i < d.pts.length; i += 2) i ? ctx.lineTo(d.pts[i], d.pts[i + 1]) : ctx.moveTo(d.pts[i], d.pts[i + 1]);
-      if (d.open) { ctx.strokeStyle = d.fill; ctx.lineWidth = d.width; ctx.lineCap = 'round'; ctx.stroke(); }
-      else { ctx.closePath(); ctx.fillStyle = d.fill; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+      if (d.open) { ctx.strokeStyle = d.fill; ctx.lineWidth = Math.max(this.px, d.width); ctx.lineCap = 'square'; ctx.stroke(); }
+      else { ctx.closePath(); ctx.fillStyle = d.fill; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = this.px; ctx.stroke(); }
       ctx.restore();
     }
   }
@@ -108,11 +110,11 @@ export class ParticleSystem {
       ctx.globalAlpha = Math.min(1, t * 1.6);
       switch (this.kind[i]) {
         case PK.Spark:
-          ctx.strokeStyle = this.color[i]; ctx.lineWidth = s * 0.6;
+          ctx.strokeStyle = this.color[i]; ctx.lineWidth = Math.max(this.px, s * 0.6);
           ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - this.vx[i] * 0.025, y - this.vy[i] * 0.025); ctx.stroke();
           break;
         case PK.Chip:
-          ctx.fillStyle = this.color[i]; ctx.fillRect(x - s / 2, y - s / 2, s, s * 0.7);
+          ctx.fillStyle = this.color[i]; ctx.fillRect(x - s / 2, y - s / 2, Math.max(this.px, s), Math.max(this.px, s * 0.7));
           break;
         case PK.Shard:
           ctx.fillStyle = this.color[i];
@@ -126,7 +128,7 @@ export class ParticleSystem {
         }
         case PK.Ring: {
           const r = this.vx[i] * (1 - t * t);
-          ctx.globalAlpha = t * 0.8; ctx.strokeStyle = this.color[i]; ctx.lineWidth = 2 + 4 * t;
+          ctx.globalAlpha = t * 0.8; ctx.strokeStyle = this.color[i]; ctx.lineWidth = Math.max(this.px, this.px * 2 * t);
           ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.stroke();
           break;
         }
@@ -146,8 +148,8 @@ export class ParticleSystem {
       const a = Math.min(1, (t.life / t.max) * 2);
       const pop = 1 + Math.max(0, (t.life / t.max - 0.8)) * 2;
       ctx.globalAlpha = a;
-      ctx.font = `900 ${Math.round(t.size * pop)}px system-ui, sans-serif`;
-      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+      ctx.font = `700 ${Math.round(t.size * pop)}px 'Pixelify Sans', monospace`;
+      ctx.lineWidth = 5; ctx.lineJoin = 'miter'; ctx.strokeStyle = '#000';
       ctx.strokeText(t.text, t.x, t.y);
       ctx.fillStyle = t.color; ctx.fillText(t.text, t.x, t.y);
     }

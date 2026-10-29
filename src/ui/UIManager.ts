@@ -203,7 +203,7 @@ export class UIManager {
       const force = ec.toolForce(t);
       if (!st.owned && s.rep < t.rep && shownLocked++ >= 2) continue;
       const stats = t.kind === 'pinch' || t.kind === 'strike'
-        ? `Força ${fmt(force)} · ${ec.toolRate(t).toFixed(1)} golpes/s · área ${Math.round(ec.toolRadius(t))}px`
+        ? `Força ${fmt(force)} · ${ec.toolRate(t).toFixed(1)} golpes/s · área ${ec.toolRadius(t).toFixed(1)} cm`
         : `Pressão ${fmt(force)}/s · pistão ${ec.pistonSpeed(t).toFixed(2)}×`;
       h += `<div class="item ${!st.owned && ec.canBuyTool(t.id) ? 'locked' : ''} ${s.equipped === t.id ? 'active' : ''}">
         <h4><span class="ic">${t.icon}</span>${t.name}</h4><div class="sub">${t.desc}</div><div>${stats}</div>`;

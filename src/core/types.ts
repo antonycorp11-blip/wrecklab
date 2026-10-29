@@ -46,6 +46,8 @@ export interface ObjectDef {
   scrap: number;
   /** kg, used for compaction stats */
   mass: number;
+  /** real-world width in cm (drives camera scale vs. tool size) */
+  cm: number;
   maxCompress: number;
   build: () => PartSpec[];
 }
@@ -61,8 +63,10 @@ export interface ToolDef {
   force: number;
   /** hits per second (pinch/strike) */
   rate: number;
-  /** contact radius in screen px */
+  /** contact radius in cm */
   radius: number;
+  /** real length in cm (hand tools are drawn and framed at real scale) */
+  len: number;
   cost: number;
   rareCost?: number;
   rep: number;

@@ -39,7 +39,8 @@ export class GameEngine {
   phaseT = 0;
   offX = 0;
   time = 0;
-  view = { cx: 0, floorY: 0, zoom: 1, w: 0, h: 0 };
+  view = { cx: 0, floorY: 0, zoom: 1, w: 0, h: 0, cpu: 1 };
+  private zoomTarget = 1;
   cam = { x: 0, y: 0, mag: 0 };
   lastDamageT = -10;
   hardWarnT = 0;
@@ -56,6 +57,7 @@ export class GameEngine {
   private saveT = 0;
   private slowT = 0;
   private last = 0;
+  private errShown = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.save = SaveManager.load();
@@ -96,8 +98,14 @@ export class GameEngine {
     const loop = (t: number) => {
       const dt = Math.min(0.05, (t - this.last) / 1000);
       this.last = t;
-      this.update(dt);
-      this.renderer.render(dt);
+      // never let one bad frame freeze the game loop
+      try {
+        this.update(dt);
+        this.renderer.render(dt);
+      } catch (err) {
+        console.error(err);
+        if (!this.errShown) { this.errShown = true; this.ui?.toast(`Erro: ${(err as Error)?.message ?? err}`, '⚠️'); }
+      }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -137,27 +145,49 @@ export class GameEngine {
     const id = this.contracts.current();
     if (!id) { this.phase = 'idle'; return; }
     this.obj = ObjectFactory.create(id);
-    this.computeView();
+    this.computeView(true);
     this.tools.reset(this);
     this.phase = 'enter';
     this.phaseT = 0;
     this.offX = -this.view.w * 0.75;
   }
 
-  computeView() {
+  computeView(snap = false) {
     const w = this.renderer.w, h = this.renderer.h;
     const floorY = h - Math.max(66, h * 0.16);
-    const side = Math.max(120, w * 0.15);
-    const top = Math.max(84, h * 0.17);
+    const side = Math.max(110, w * 0.13);
+    const top = Math.max(92, h * 0.24);
     const o = this.obj;
-    const zoom = o ? Math.min((w - side * 2) / (o.W * 1.3), (floorY - top) / (o.H * 1.4)) : 1;
-    this.view = { cx: w / 2, floorY, zoom, w, h };
+    const v = this.view;
+    v.cx = w / 2; v.floorY = floorY; v.w = w; v.h = h;
+    if (!o) return;
+    // real-world scale: the frame fits both the object and the hand tool (a clip looks tiny next to pliers)
+    const cpu = o.def.cm / o.W;
+    const wcm = o.def.cm, hcm = o.H * cpu;
+    const tl = this.toolDrawLen();
+    const pxcm = Math.min((w - side * 2) / Math.max(wcm * 1.25, tl * 1.05), (floorY - top) / Math.max(hcm * 1.35, tl * 0.75));
+    this.zoomTarget = pxcm * cpu;
+    if (snap || v.cpu !== cpu) v.zoom = this.zoomTarget;
+    v.cpu = cpu;
   }
+
+  /** Drawn hand-tool length in cm: real size, but at most ~2x the object so tiny items stay readable. */
+  toolDrawLen() {
+    const t = this.tool, o = this.obj;
+    if (t.kind !== 'pinch' && t.kind !== 'strike') return 0;
+    if (!o) return t.len;
+    const cpu = o.def.cm / o.W;
+    return Math.min(t.len, Math.max(o.def.cm, o.H * cpu) * 2);
+  }
+
+  /** screen px per cm */
+  get pxPerCm() { return this.view.zoom / this.view.cpu; }
 
   equip(id: string) {
     if (!this.save.tools[id]?.owned || this.save.equipped === id) return;
     this.save.equipped = id;
     this.prog.onToolSwitch(id);
+    this.computeView();
     this.tools.reset(this);
     this.audio.click();
     this.ui.refreshTools();
@@ -176,7 +206,8 @@ export class GameEngine {
   update(dt: number) {
     this.time += dt;
     this.save.stats.playTime += dt;
-    if (this.renderer.resized) { this.renderer.resized = false; this.computeView(); }
+    if (this.renderer.resized) { this.renderer.resized = false; this.computeView(true); }
+    this.view.zoom += (this.zoomTarget - this.view.zoom) * Math.min(1, dt * 6);
     this.autoQuality(dt);
     const feed = 1 + this.econ.stats.feedSpeed;
     this.phaseT += dt;
@@ -267,7 +298,7 @@ export class GameEngine {
         const strike = this.bestStrikeTool();
         this.prog.run.auto = true;
         this.tools.autoFx.push({ x: sx, y: sy, t: 0.25 });
-        this.hit(rx, ry, this.econ.toolForce(strike) * 0.6, (this.econ.toolRadius(strike) * 0.7) / this.view.zoom, 'dent', sx, sy, true);
+        this.hit(rx, ry, this.econ.toolForce(strike) * 0.6, (this.econ.toolRadius(strike) * 0.7) / this.view.cpu, 'dent', sx, sy, true);
       }
     }
     // phantom piston
@@ -300,9 +331,9 @@ export class GameEngine {
   /** Manual strike/pinch at a screen point. */
   strikeAt(sx: number, sy: number, tool: ToolDef) {
     const o = this.obj!;
-    const rL = this.econ.toolRadius(tool) / this.view.zoom;
+    const rL = this.econ.toolRadius(tool) / this.view.cpu;
     let [lx, ly] = this.toLocal(sx, sy);
-    const m = rL * 0.6;
+    const m = rL * 0.6 + 34 / this.view.zoom; // generous margin for fingers
     if (lx < o.rawLeft - m || lx > o.rawRight + m || ly < o.rawTop - m || ly > m) {
       this.particles.burst(PK.Dust, sx, sy, 3, 40, '#aaa', 8, 0.4);
       return;

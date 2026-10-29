@@ -32,7 +32,7 @@ export const OBJECTS: Record<string, ObjectDef> = {};
 function def(o: ObjectDef) { OBJECTS[o.id] = o; }
 
 def({
-  id: 'cap', name: 'Tampinha', size: '3 cm', mat: 'aluminum', hp: 18, hardness: 2, value: 3, scrap: 1, mass: 0.002, maxCompress: 0.7,
+  id: 'cap', name: 'Tampinha', size: '3 cm', mat: 'aluminum', hp: 18, hardness: 2, value: 3, scrap: 1, mass: 0.002, cm: 3, maxCompress: 0.7,
   build: () => {
     const flutes: PartSpec[] = [];
     for (let x = -24; x <= 24; x += 8) flutes.push(L([x, 3, x, 15], 'aluminum', '#8e1b12', 2.5, { z: 2 }));
@@ -40,11 +40,11 @@ def({
   },
 });
 def({
-  id: 'clip', name: 'Clipe', size: '4 cm', mat: 'steel', hp: 14, hardness: 4, value: 2, scrap: 1, mass: 0.001, maxCompress: 0.6,
-  build: () => [L([-30, 4, 30, 4, 34, 13, 30, 22, -26, 22, -30, 13, -26, 8, 22, 8, 25, 13, 22, 17, -18, 17], 'steel', '#b2bec3', 4)],
+  id: 'clip', name: 'Clipe', size: '4 cm', mat: 'steel', hp: 14, hardness: 4, value: 2, scrap: 1, mass: 0.001, cm: 4, maxCompress: 0.6,
+  build: () => [L([-30, 4, 30, 4, 34, 13, 30, 22, -26, 22, -30, 13, -26, 8, 22, 8, 25, 13, 22, 17, -18, 17], 'steel', '#c8d2d8', 2.6)],
 });
 def({
-  id: 'can', name: 'Latinha', size: '12 cm', mat: 'aluminum', hp: 32, hardness: 2.5, value: 5, scrap: 2, mass: 0.015, maxCompress: 0.82,
+  id: 'can', name: 'Latinha', size: '12 cm', mat: 'aluminum', hp: 32, hardness: 2.5, value: 5, scrap: 2, mass: 0.015, cm: 7, maxCompress: 0.82,
   build: () => [
     P(RR(-25, 4, 50, 82, 5), 'aluminum', '#e74c3c', { z: 1 }),
     P(R(-25, 32, 50, 24), 'aluminum', '#f5f6fa', { z: 2 }),
@@ -55,7 +55,7 @@ def({
   ],
 });
 def({
-  id: 'bottle', name: 'Garrafa PET', size: '25 cm', mat: 'plastic', hp: 28, hardness: 1.5, value: 4, scrap: 1, mass: 0.03, maxCompress: 0.8,
+  id: 'bottle', name: 'Garrafa PET', size: '25 cm', mat: 'plastic', hp: 28, hardness: 1.5, value: 4, scrap: 1, mass: 0.03, cm: 8, maxCompress: 0.8,
   build: () => [
     P([-20, 0, 20, 0, 23, 8, 23, 70, 14, 88, 8, 100, -8, 100, -14, 88, -23, 70, -23, 8], 'plastic', 'rgba(130,205,255,0.7)', { z: 1 }),
     P(R(-23, 30, 46, 22), 'plastic', '#27ae60', { z: 2 }),
@@ -64,7 +64,7 @@ def({
   ],
 });
 def({
-  id: 'toy', name: 'Robô de Brinquedo', size: '20 cm', mat: 'plastic', hp: 48, hardness: 3, value: 8, scrap: 2, mass: 0.2, maxCompress: 0.72,
+  id: 'toy', name: 'Robô de Brinquedo', size: '20 cm', mat: 'plastic', hp: 48, hardness: 3, value: 8, scrap: 2, mass: 0.2, cm: 12, maxCompress: 0.72,
   build: () => [
     P(R(-18, 0, 14, 30), 'plastic', '#0984e3', { z: 1 }),
     P(R(4, 0, 14, 30), 'plastic', '#0984e3', { z: 1 }),
@@ -79,7 +79,7 @@ def({
   ],
 });
 def({
-  id: 'jar', name: 'Pote de Vidro', size: '15 cm', mat: 'glass', hp: 42, hardness: 5, value: 10, scrap: 2, mass: 0.4, maxCompress: 0.75,
+  id: 'jar', name: 'Pote de Vidro', size: '15 cm', mat: 'glass', hp: 42, hardness: 5, value: 10, scrap: 2, mass: 0.4, cm: 10, maxCompress: 0.75,
   build: () => [
     P(RR(-26, 4, 52, 46, 8), 'plastic', '#b33939', { z: 1 }),
     P(RR(-32, 0, 64, 76, 10), 'glass', 'rgba(175,230,240,0.45)', { z: 2, detach: 0.5, shatter: true }),
@@ -87,7 +87,7 @@ def({
   ],
 });
 def({
-  id: 'pan', name: 'Panela', size: '30 cm', mat: 'aluminum', hp: 85, hardness: 8, value: 18, scrap: 4, mass: 1.2, maxCompress: 0.7,
+  id: 'pan', name: 'Panela', size: '30 cm', mat: 'aluminum', hp: 85, hardness: 8, value: 18, scrap: 4, mass: 1.2, cm: 45, maxCompress: 0.7,
   build: () => [
     P([-50, 0, 50, 0, 56, 50, -56, 50], 'aluminum', '#95a5a6', { z: 1 }),
     P(R(-60, 48, 120, 6), 'aluminum', '#bdc3c7', { z: 2 }),
@@ -96,7 +96,7 @@ def({
   ],
 });
 def({
-  id: 'crate', name: 'Caixote', size: '50 cm', mat: 'wood', hp: 115, hardness: 6, value: 20, scrap: 4, mass: 6, maxCompress: 0.65,
+  id: 'crate', name: 'Caixote', size: '50 cm', mat: 'wood', hp: 115, hardness: 6, value: 20, scrap: 4, mass: 6, cm: 50, maxCompress: 0.65,
   build: () => {
     const p: PartSpec[] = [];
     for (let i = 0; i < 4; i++) p.push(P(R(-55, i * 20, 110, 18), 'wood', i % 2 ? '#c8a165' : '#d4ad72', { z: 1, detach: 0.55 + i * 0.08, shatter: true }));
@@ -106,7 +106,7 @@ def({
   },
 });
 def({
-  id: 'toolbox', name: 'Caixa Metálica', size: '45 cm', mat: 'steel', hp: 210, hardness: 14, value: 40, scrap: 8, mass: 4, maxCompress: 0.72,
+  id: 'toolbox', name: 'Caixa Metálica', size: '45 cm', mat: 'steel', hp: 210, hardness: 14, value: 40, scrap: 8, mass: 4, cm: 45, maxCompress: 0.72,
   build: () => [
     P(R(-70, 0, 140, 56), 'steel', '#c0392b', { z: 1 }),
     P([-70, 56, 70, 56, 60, 72, -60, 72], 'steel', '#e74c3c', { z: 2 }),
@@ -116,7 +116,7 @@ def({
   ],
 });
 def({
-  id: 'bikewheel', name: 'Roda de Bicicleta', size: '66 cm', mat: 'steel', hp: 150, hardness: 10, value: 30, scrap: 6, mass: 2, maxCompress: 0.7,
+  id: 'bikewheel', name: 'Roda de Bicicleta', size: '66 cm', mat: 'steel', hp: 150, hardness: 10, value: 30, scrap: 6, mass: 2, cm: 66, maxCompress: 0.7,
   build: () => {
     const p: PartSpec[] = [P(C(0, 70, 70, 32), 'rubber', '#2d3436', { z: 1 }), P(C(0, 70, 60, 32), 'steel', '#95a5a6', { z: 2 }), P(C(0, 70, 55, 32), 'steel', '#4b5257', { z: 3 })];
     for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; p.push(L([0, 70, Math.cos(a) * 55, 70 + Math.sin(a) * 55], 'steel', '#ecf0f1', 1.6, { z: 4, detach: 0.3 + (i % 4) * 0.12 })); }
@@ -125,7 +125,7 @@ def({
   },
 });
 def({
-  id: 'microwave', name: 'Micro-ondas', size: '50 cm', mat: 'steel', hp: 380, hardness: 18, value: 70, scrap: 14, mass: 12, maxCompress: 0.75,
+  id: 'microwave', name: 'Micro-ondas', size: '50 cm', mat: 'steel', hp: 380, hardness: 18, value: 70, scrap: 14, mass: 12, cm: 50, maxCompress: 0.75,
   build: () => [
     P(R(40, 20, 38, 22), 'plastic', '#27ae60', { z: 0, rare: true, detach: 0.75 }),
     P(RR(-90, 0, 180, 110, 6), 'steel', '#dfe6e9', { z: 1 }),
@@ -138,7 +138,7 @@ def({
   ],
 });
 def({
-  id: 'tv', name: 'TV de Tubo', size: '60 cm', mat: 'plastic', hp: 340, hardness: 15, value: 65, scrap: 12, mass: 25, maxCompress: 0.72,
+  id: 'tv', name: 'TV de Tubo', size: '60 cm', mat: 'plastic', hp: 340, hardness: 15, value: 65, scrap: 12, mass: 25, cm: 60, maxCompress: 0.72,
   build: () => [
     P(C(-10, 75, 32, 16), 'glass', '#8e44ad', { z: 0, rare: true, detach: 0.8 }),
     P(RR(-85, 10, 170, 130, 12), 'plastic', '#6d4c41', { z: 1 }),
@@ -153,7 +153,7 @@ def({
   ],
 });
 def({
-  id: 'fridge', name: 'Geladeira', size: '1,8 m', mat: 'steel', hp: 1400, hardness: 40, value: 250, scrap: 45, mass: 70, maxCompress: 0.8,
+  id: 'fridge', name: 'Geladeira', size: '1,8 m', mat: 'steel', hp: 1400, hardness: 40, value: 250, scrap: 45, mass: 70, cm: 70, maxCompress: 0.8,
   build: () => [
     P(R(-30, 8, 60, 30), 'steel', '#2c3e50', { z: 0, rare: true, detach: 0.85 }),
     P(RR(-60, 0, 120, 220, 8), 'steel', '#dfe6e9', { z: 1 }),
@@ -165,7 +165,7 @@ def({
   ],
 });
 def({
-  id: 'safe', name: 'Cofre', size: '80 cm', mat: 'steel', hp: 2800, hardness: 120, value: 600, scrap: 90, mass: 300, maxCompress: 0.6,
+  id: 'safe', name: 'Cofre', size: '80 cm', mat: 'steel', hp: 2800, hardness: 120, value: 600, scrap: 90, mass: 300, cm: 80, maxCompress: 0.6,
   build: () => [
     P(R(-34, 16, 68, 22), 'steel', '#f1c40f', { z: 0, rare: true, detach: 0.82 }),
     P(R(-70, 0, 140, 150), 'steel', '#34495e', { z: 1 }),
@@ -176,7 +176,7 @@ def({
   ],
 });
 def({
-  id: 'moto', name: 'Motocicleta', size: '2 m', mat: 'steel', hp: 3800, hardness: 80, value: 900, scrap: 120, mass: 180, maxCompress: 0.7,
+  id: 'moto', name: 'Motocicleta', size: '2 m', mat: 'steel', hp: 3800, hardness: 80, value: 900, scrap: 120, mass: 180, cm: 210, maxCompress: 0.7,
   build: () => [
     P(R(-22, 28, 54, 34), 'steel', '#636e72', { z: 1, rare: true, detach: 0.85 }),
     L([-85, 38, -20, 62, 40, 64, 85, 38], 'steel', '#c0392b', 9, { z: 2 }),
@@ -189,7 +189,7 @@ def({
   ],
 });
 def({
-  id: 'car', name: 'Carro', size: '4 m', mat: 'steel', hp: 11000, hardness: 200, value: 3000, scrap: 400, mass: 1200, maxCompress: 0.78,
+  id: 'car', name: 'Carro', size: '4 m', mat: 'steel', hp: 11000, hardness: 200, value: 3000, scrap: 400, mass: 1200, cm: 420, maxCompress: 0.78,
   build: () => [
     P(R(105, 30, 72, 32), 'steel', '#4b4b4b', { z: 0, rare: true, detach: 0.88 }),
     P([-120, 74, 100, 74, 62, 136, -82, 139], 'steel', '#1f6fa8', { z: 1 }),
@@ -208,7 +208,7 @@ def({
   ],
 });
 def({
-  id: 'bus', name: 'Ônibus', size: '12 m', mat: 'steel', hp: 48000, hardness: 600, value: 14000, scrap: 1500, mass: 11000, maxCompress: 0.8,
+  id: 'bus', name: 'Ônibus', size: '12 m', mat: 'steel', hp: 48000, hardness: 600, value: 14000, scrap: 1500, mass: 11000, cm: 1200, maxCompress: 0.8,
   build: () => {
     const p: PartSpec[] = [
       P(R(160, 40, 110, 50), 'steel', '#4b4b4b', { z: 0, rare: true, detach: 0.88 }),
@@ -224,7 +224,7 @@ def({
   },
 });
 def({
-  id: 'mech', name: 'Robô Gigante', size: '20 m', mat: 'alloy', hp: 280000, hardness: 2500, value: 90000, scrap: 8000, mass: 90000, maxCompress: 0.7,
+  id: 'mech', name: 'Robô Gigante', size: '20 m', mat: 'alloy', hp: 280000, hardness: 2500, value: 90000, scrap: 8000, mass: 90000, cm: 1600, maxCompress: 0.7,
   build: () => [
     P(R(-46, 0, 36, 110), 'alloy', '#576574', { z: 1 }),
     P(R(10, 0, 36, 110), 'alloy', '#576574', { z: 1 }),
@@ -242,7 +242,7 @@ def({
   ],
 });
 def({
-  id: 'ship', name: 'Nave Estelar', size: '60 m', mat: 'quantum', hp: 1.9e6, hardness: 12000, value: 700000, scrap: 50000, mass: 600000, maxCompress: 0.75,
+  id: 'ship', name: 'Nave Estelar', size: '60 m', mat: 'quantum', hp: 1.9e6, hardness: 12000, value: 700000, scrap: 50000, mass: 600000, cm: 6000, maxCompress: 0.75,
   build: () => [
     P([-60, 40, 60, 40, 30, 150, -30, 150], 'quantum', '#5f27cd', { z: 0, detach: 0.42 }),
     P([-210, 20, 160, 20, 210, 60, 160, 100, -210, 100, -190, 60], 'quantum', '#c8d6e5', { z: 1 }),
