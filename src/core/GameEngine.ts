@@ -77,6 +77,8 @@ export class GameEngine {
   private slowT = 0;
   private last = 0;
   private errShown = false;
+  /** whole stock crushed this run: timer stops while the win plays out */
+  private won = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.save = SaveManager.load();
@@ -104,9 +106,7 @@ export class GameEngine {
 
   start() {
     const a = this.save.active;
-    if (a && CONTRACT_MAP[a.id]) this.openContract(a.id);
-    else if (!this.save.contracts.c001) this.openContract('c001');
-    else setTimeout(() => this.ui.openPanel('contracts'), 300);
+    this.openContract(a && CONTRACT_MAP[a.id] ? a.id : 'gaveta-1');
     this.last = performance.now();
     const loop = (t: number) => {
       const dt = Math.min(0.05, (t - this.last) / 1000);
@@ -127,7 +127,7 @@ export class GameEngine {
     window.addEventListener('beforeunload', persist);
   }
 
-  persist() { this.contracts.persist(); SaveManager.save(this.save); }
+  persist() { SaveManager.save(this.save); }
 
   resetSave(data: SaveData) {
     this.save = data;
@@ -140,14 +140,14 @@ export class GameEngine {
     this.phase = 'lobby';
     this.particles.clearAll();
     this.persist();
-    this.openContract(data.active?.id ?? 'c001');
+    this.openContract(data.active?.id ?? 'gaveta-1');
     this.ui.refreshAll();
   }
 
   // ---------------------------------------------------------------- flow
   /** Select a contract: fills its scene and shows the intro card in the lobby. */
   openContract(id: string) {
-    if (!this.contracts.start(id)) return;
+    if (!this.contracts.select(id)) return;
     this.prog.startRun();
     this.phase = 'lobby';
     this.field = [];
@@ -164,8 +164,13 @@ export class GameEngine {
     this.phase = 'run';
     this.runLen = this.timeLeft = this.econ.runTime();
     this.run = { crushed: 0, money: 0, scrap: 0, rare: 0, auto: false };
-    this.contracts.runs++;
     this.save.stats.runs++;
+    this.won = false;
+    // every run starts from the full stock
+    this.contracts.reset();
+    this.field = [];
+    this.pending = [];
+    this.particles.clearAll();
     this.fillField(false);
     this.ui.hideLobby();
     this.particles.text('VAI!', this.view.w / 2, this.view.h * 0.4, '#f2a516', 46, 0.9);
@@ -182,6 +187,7 @@ export class GameEngine {
   private toLobby() {
     this.phase = 'lobby';
     this.pending = [];
+    this.contracts.recordRun(false);
     this.save.stats.bestRun = Math.max(this.save.stats.bestRun, this.run.crushed);
     this.prog.onRunEnd(this.run.crushed, this.run.auto);
     this.persist();
@@ -189,8 +195,13 @@ export class GameEngine {
   }
 
   private completeContract() {
+    if (this.phase !== 'run' || !this.won) return;
+    this.won = false;
     const c = this.contracts.active!;
     const r = this.contracts.rewards();
+    this.contracts.recordRun(true);
+    this.save.stats.bestRun = Math.max(this.save.stats.bestRun, this.run.crushed);
+    this.prog.onRunEnd(this.run.crushed, this.run.auto);
     this.save.money += r.money;
     this.save.scrap += r.scrap;
     this.save.rep += r.rep;
@@ -198,7 +209,6 @@ export class GameEngine {
     this.save.stats.moneyEarned += r.money;
     this.save.stats.contracts++;
     this.prog.onContractDone();
-    this.contracts.finish();
     this.phase = 'lobby';
     this.pending = [];
     this.audio.fanfare();
@@ -295,9 +305,9 @@ export class GameEngine {
     this.field = this.field.filter((it) => !(it.state === 'dying' && it.t > 0.32));
 
     if (this.phase === 'run') {
-      this.timeLeft -= dt;
+      if (!this.won) this.timeLeft -= dt;
       this.updateRun(dt);
-      if (this.phase === 'run' && this.timeLeft <= 0) { this.timeLeft = 0; this.endRun(); }
+      if (this.phase === 'run' && !this.won && this.timeLeft <= 0) { this.timeLeft = 0; this.endRun(); }
     } else if (this.phase === 'ending') {
       this.endT -= dt;
       if (this.endT <= 0) this.toLobby();
@@ -569,7 +579,7 @@ export class GameEngine {
     if (MATERIALS[o.def.mat].sparks) this.particles.burst(PK.Spark, it.x, sy, 16, 600, '#ffd166', 2.5, 0.45, 200);
     this.particles.burst(PK.Dust, it.x, it.y, 6, 140, '#bfb8aa', 16, 0.8);
     this.audio.collapse(MATERIALS[o.def.mat].sound, this.sizeFactor(o));
-    if (this.contracts.remaining() === 0) setTimeout(() => { if (this.contracts.active) this.completeContract(); }, 450);
+    if (this.contracts.remaining() === 0 && !this.won) { this.won = true; this.hitStop = 0.25; this.particles.text('LIMPO!', this.view.w / 2, this.view.h * 0.4, '#7bed9f', 46, 1.2); setTimeout(() => this.completeContract(), 700); }
   }
 
   /** Crushed item turns into a scrap cube that pops with coins. */

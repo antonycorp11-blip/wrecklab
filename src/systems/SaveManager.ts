@@ -2,7 +2,7 @@ import type { SaveData } from '../core/types';
 import { TOOLS } from '../data/tools';
 
 const KEY = 'wrecklab.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export function defaultSave(): SaveData {
   return {
@@ -36,7 +36,7 @@ function sanitize(raw: any): SaveData {
   if (typeof raw.equipped === 'string' && d.tools[raw.equipped]?.owned) d.equipped = raw.equipped;
   if (raw.skills && typeof raw.skills === 'object') for (const [k, v] of Object.entries(raw.skills)) if (typeof v === 'number') d.skills[k] = v;
   d.skills.root = 1;
-  if (raw.contracts && typeof raw.contracts === 'object') for (const [k, v] of Object.entries<any>(raw.contracts)) d.contracts[k] = { done: num(v?.done, 0), runs: num(v?.runs, 0) };
+  if (raw.contracts && typeof raw.contracts === 'object') for (const [k, v] of Object.entries<any>(raw.contracts)) d.contracts[k] = { done: num(v?.done, 0), best: Math.min(1, num(v?.best, 0)), tries: num(v?.tries, 0) };
   if (raw.challenges && typeof raw.challenges === 'object') for (const [k, v] of Object.entries<any>(raw.challenges)) d.challenges[k] = { done: !!v?.done, claimed: !!v?.claimed };
   if (raw.stats) {
     for (const k of Object.keys(d.stats) as (keyof SaveData['stats'])[]) if (k !== 'byObject') (d.stats as any)[k] = num(raw.stats[k], 0);
@@ -48,11 +48,7 @@ function sanitize(raw: any): SaveData {
     d.settings.shake = raw.settings.shake !== false;
     if (['auto', 'high', 'low'].includes(raw.settings.quality)) d.settings.quality = raw.settings.quality;
   }
-  if (raw.active && typeof raw.active.id === 'string' && raw.active.left && typeof raw.active.left === 'object') {
-    const left: Record<string, number> = {};
-    for (const [k, v] of Object.entries(raw.active.left)) if (typeof v === 'number') left[k] = Math.max(0, v);
-    d.active = { id: raw.active.id, left, runs: num(raw.active.runs, 0) };
-  }
+  if (raw.active && typeof raw.active.id === 'string') d.active = { id: raw.active.id };
   d.autoRepeat = raw.autoRepeat !== false;
   d.seenIntro = !!raw.seenIntro;
   return d;
@@ -62,6 +58,8 @@ function sanitize(raw: any): SaveData {
 const MIGRATIONS: Record<number, (s: any) => any> = {
   // v1 → v2: run-based contracts and new tools. Keep only settings and lifetime stats.
   1: (s) => ({ v: 2, settings: s?.settings, seenIntro: true, stats: s?.stats ? { ...s.stats, byObject: s.stats.byObject } : undefined }),
+  // v2 → v3: contracts became series of single-run challenges; keep economy, tools and skills.
+  2: (s) => ({ ...s, v: 3, contracts: {}, active: null }),
 };
 
 export const SaveManager = {

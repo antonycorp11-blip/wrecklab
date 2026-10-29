@@ -148,7 +148,7 @@ export class ParticleSystem {
       const a = Math.min(1, (t.life / t.max) * 2);
       const pop = 1 + Math.max(0, (t.life / t.max - 0.8)) * 2;
       ctx.globalAlpha = a;
-      ctx.font = `700 ${Math.round(t.size * pop)}px 'Pixelify Sans', monospace`;
+      ctx.font = `${Math.round(t.size * pop * 0.72)}px 'Press Start 2P', monospace`;
       ctx.lineWidth = 5; ctx.lineJoin = 'miter'; ctx.strokeStyle = '#000';
       ctx.strokeText(t.text, t.x, t.y);
       ctx.fillStyle = t.color; ctx.fillText(t.text, t.x, t.y);

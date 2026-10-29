@@ -76,9 +76,9 @@ export interface ToolDef {
 export interface SceneDef {
   id: string;
   name: string;
-  wall: 'tiles' | 'bricks' | 'planks' | 'corrugated' | 'concrete' | 'vault' | 'panels' | 'sky' | 'space';
+  wall: 'tiles' | 'bricks' | 'planks' | 'corrugated' | 'concrete' | 'vault' | 'panels' | 'sky' | 'space' | 'drawer';
   wallColors: [string, string];
-  floor: 'tiles' | 'wood' | 'concrete' | 'dirt' | 'asphalt' | 'metal';
+  floor: 'tiles' | 'wood' | 'concrete' | 'dirt' | 'asphalt' | 'metal' | 'liner';
   floorColors: [string, string];
   props: string[];
 }
@@ -86,8 +86,14 @@ export interface SceneDef {
 export interface ContractDef {
   id: string;
   num: string;
+  /** series id: contracts of a series share client, story and scene */
+  series: string;
+  part: number;
+  parts: number;
   name: string;
+  subtitle: string;
   client: string;
+  icon: string;
   story: string;
   quote: string;
   scene: string;
@@ -147,7 +153,8 @@ export interface SaveData {
   tools: Record<string, ToolState>;
   equipped: string;
   skills: Record<string, number>;
-  contracts: Record<string, { done: number; runs: number }>;
+  /** best = best fraction of the stock crushed in a single run */
+  contracts: Record<string, { done: number; best: number; tries: number }>;
   challenges: Record<string, { done: boolean; claimed: boolean }>;
   stats: {
     destroyed: number; hits: number; crits: number; rare: number; mass: number;
@@ -155,8 +162,8 @@ export interface SaveData {
     byObject: Record<string, number>;
   };
   settings: { volume: number; muted: boolean; quality: 'auto' | 'high' | 'low'; shake: boolean };
-  /** contract in progress: remaining stock per object id */
-  active: { id: string; left: Record<string, number>; runs: number } | null;
+  /** selected contract */
+  active: { id: string } | null;
   autoRepeat: boolean;
   milestone: number;
   seenIntro: boolean;

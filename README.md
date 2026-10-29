@@ -28,7 +28,7 @@ O `public/_headers` define cache longo para `/assets/*` e `no-cache` para o `ind
 
 ## Como se joga
 
-Cada contrato é um cliente com história e cenário próprios e um estoque grande de itens. Os itens ficam espalhados pelo chão do cenário. Em cada **run** (12 s no começo, mais com a família de habilidades *Fôlego*), segure e arraste a ferramenta sobre os itens para esmagar tudo o que passa embaixo. O que sobrar continua no chão para a próxima run. Entre as runs, gaste sucata na árvore e dinheiro nas ferramentas. Um contrato costuma levar várias runs.
+Os contratos vêm em séries (Gaveta 1–4, Distribuidora 1–3…), cada uma com cliente, história e cenário próprios. Em cada **run** (12 s no começo, mais com a família de habilidades *Fôlego*), segure e arraste a ferramenta sobre os itens espalhados para esmagar tudo o que passa embaixo. **Toda run recomeça do zero**: a parte só é concluída se você esmagar o estoque inteiro dentro de uma run. Os itens esmagados sempre rendem dinheiro e sucata, que viram upgrades na árvore e nas ferramentas até você ter capacidade para fechar a parte.
 
 | Ação | PC | Mobile |
 | --- | --- | --- |

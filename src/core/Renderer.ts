@@ -73,104 +73,188 @@ export class Renderer {
   }
 
   // ------------------------------------------------------------ scene backdrop
+  private thumbs = new Map<string, string>();
+
+  /** Small pixel-art preview of a scene (for contract cards). */
+  sceneThumb(id: string, tw = 240, th = 120) {
+    const key = `${id}:${tw}x${th}`;
+    const hit = this.thumbs.get(key);
+    if (hit) return hit;
+    const P = 2;
+    const c = document.createElement('canvas');
+    c.width = tw / P; c.height = th / P;
+    const g = c.getContext('2d')!;
+    g.setTransform(1 / P, 0, 0, 1 / P, 0, 0);
+    this.drawScene(g, tw, th, P, SCENES[id] ?? SCENES.drawer, th * 0.5, false);
+    const url = c.toDataURL();
+    this.thumbs.set(key, url);
+    return url;
+  }
+
   private buildBackground(sc: SceneDef, key: string) {
     this.bgKey = key;
     const P = this.P;
     this.bg.width = this.low.width; this.bg.height = this.low.height;
     const g = this.bg.getContext('2d')!;
     g.setTransform(1 / P, 0, 0, 1 / P, 0, 0);
-    const w = this.w, h = this.h;
-    const hz = this.e.view.horizon || h * 0.46;
+    this.drawScene(g, this.w, this.h, P, sc, this.e.view.horizon || this.h * 0.46, true);
+  }
+
+  /** Room with a perspective floor, soft lighting and themed props. Works at any size. */
+  private drawScene(g: CanvasRenderingContext2D, w: number, h: number, P: number, sc: SceneDef, hz: number, vignette: boolean) {
     const R = rng(777 + sc.id.length * 31);
     const q = (v: number) => Math.round(v / P) * P;
     const px = (x: number, y: number, ww: number, hh: number, c: string) => { g.fillStyle = c; g.fillRect(q(x), q(y), Math.max(P, q(ww)), Math.max(P, q(hh))); };
+    /** dithered translucent band: alpha goes a0 → a1 from top to bottom */
+    const dither = (x: number, y: number, ww: number, hh: number, c: string, a0: number, a1: number) => {
+      for (let yy = q(y); yy < y + hh; yy += P) {
+        const t = (yy - y) / hh, a = a0 + (a1 - a0) * t;
+        g.fillStyle = c.replace('A', String(Math.min(1, Math.max(0, a))));
+        for (let xx = q(x) + ((yy / P) % 2) * P; xx < x + ww; xx += P * 2) g.fillRect(xx, yy, P, P);
+        g.fillStyle = c.replace('A', String(Math.min(1, Math.max(0, a * 0.5))));
+        g.fillRect(q(x), yy, q(ww), P);
+      }
+    };
     const [w0, w1] = sc.wallColors;
     const [f0, f1] = sc.floorColors;
+    const box = sc.wall === 'drawer';
+    const side = box ? w * 0.08 : 0;
 
-    // ---- wall
+    // ---------------- wall
     px(0, 0, w, hz, w0);
     switch (sc.wall) {
+      case 'drawer':
+        for (let y = 0, i = 0; y < hz; y += P * 9, i++) { px(0, y, w, P * 9, i % 2 ? w0 : w1); px(0, y, w, P, shade(w0, 0.18)); for (let k = 0; k < 6; k++) px(R() * w, y + P * (2 + R() * 5), P * (8 + R() * 20), P, shade(w0, -0.12)); }
+        break;
       case 'tiles': {
-        const s = P * 8;
-        for (let y = 0; y < hz; y += s) for (let x = 0; x < w; x += s) { px(x, y, s, s, ((x + y) / s) % 2 ? w0 : w1); px(x, y, s, P, shade(w0, 0.25)); px(x, y, P, s, shade(w0, -0.12)); }
+        const s = Math.max(P * 6, q(hz / 9));
+        for (let y = 0; y < hz; y += s) for (let x = 0; x < w; x += s) { px(x, y, s, s, ((x + y) / s) % 2 ? w0 : w1); px(x, y, s, P, shade(w0, 0.2)); px(x, y + s - P, s, P, shade(w0, -0.12)); }
         break;
       }
       case 'bricks':
         for (let y = 0, r = 0; y < hz; y += P * 5, r++) for (let x = r % 2 ? -P * 6 : 0; x < w; x += P * 12) {
-          px(x, y, P * 11, P * 4, R() < 0.5 ? w0 : w1); px(x, y, P * 11, P, shade(w0, 0.18));
+          px(x, y, P * 12, P * 5, shade(w1, -0.35)); px(x, y, P * 11, P * 4, R() < 0.5 ? w0 : w1); px(x, y, P * 11, P, shade(w0, 0.15));
         }
         break;
       case 'planks':
-        for (let x = 0, i = 0; x < w; x += P * 10, i++) { px(x, 0, P * 10, hz, i % 2 ? w0 : w1); px(x, 0, P, hz, shade(w0, -0.4)); px(x + P, 0, P, hz, shade(w0, 0.15)); }
+        for (let x = 0, i = 0; x < w; x += P * 10, i++) { px(x, 0, P * 10, hz, i % 2 ? w0 : w1); px(x, 0, P, hz, shade(w0, -0.35)); px(x + P, 0, P, hz, shade(w0, 0.12)); }
         break;
       case 'corrugated':
-        for (let x = 0; x < w; x += P * 4) { px(x, 0, P * 2, hz, w1); px(x, 0, P, hz, shade(w0, 0.2)); }
+        for (let x = 0; x < w; x += P * 4) { px(x, 0, P * 2, hz, w1); px(x, 0, P, hz, shade(w0, 0.18)); }
         break;
       case 'concrete':
-        for (let i = 0; i < 400; i++) px(R() * w, R() * hz, P, P, R() < 0.5 ? w1 : shade(w0, 0.1));
-        for (let x = 0; x < w; x += P * 40) px(x, 0, P, hz, shade(w0, -0.3));
+        for (let i = 0; i < (w * hz) / 900; i++) px(R() * w, R() * hz, P, P, R() < 0.5 ? w1 : shade(w0, 0.08));
+        for (let x = 0; x < w; x += q(w / 4)) px(x, 0, P, hz, shade(w0, -0.25));
         break;
       case 'vault':
       case 'panels':
         for (let y = 0; y < hz; y += P * 20) for (let x = 0; x < w; x += P * 26) {
-          px(x + P, y + P, P * 24, P * 18, w1); px(x + P, y + P, P * 24, P, shade(w1, 0.25));
+          px(x + P, y + P, P * 24, P * 18, w1); px(x + P, y + P, P * 24, P, shade(w1, 0.22));
           for (const [rx, ry] of [[3, 3], [22, 3], [3, 16], [22, 16]]) px(x + rx * P, y + ry * P, P, P, shade(w0, 0.4));
         }
         break;
       case 'sky': {
-        const grd = g.createLinearGradient(0, 0, 0, hz);
-        grd.addColorStop(0, w0); grd.addColorStop(1, w1);
-        g.fillStyle = grd; g.fillRect(0, 0, w, hz);
-        for (let i = 0; i < 6; i++) { const cx = R() * w, cy = R() * hz * 0.5; for (let k = 0; k < 4; k++) px(cx + k * P * 5, cy - (k % 2) * P * 2, P * 10, P * 4, 'rgba(255,255,255,0.75)'); }
+        for (let y = 0; y < hz; y += P) { const t = y / hz; g.fillStyle = shade(w0, -0.15 + t * 0.35); g.fillRect(0, y, w, P); }
+        for (let i = 0; i < 5; i++) { const cx = R() * w, cy = R() * hz * 0.45 + P * 6; for (let k = 0; k < 4; k++) px(cx + k * P * 6, cy - (k % 2) * P * 3, P * 12, P * 5, 'rgba(255,255,255,0.8)'); px(cx, cy + P * 4, P * 30, P, 'rgba(0,0,0,0.06)'); }
         break;
       }
       case 'space':
-        for (let i = 0; i < 160; i++) px(R() * w, R() * hz, P, P, R() < 0.2 ? '#ffeaa7' : '#ffffff');
+        for (let y = 0; y < hz; y += P) { g.fillStyle = shade(w0, (y / hz) * 0.25); g.fillRect(0, y, w, P); }
+        for (let i = 0; i < (w * hz) / 1500; i++) px(R() * w, R() * hz, P, P, R() < 0.2 ? '#ffeaa7' : '#ffffff');
         break;
     }
-    // ---- props on the wall
+    // ceiling shade
+    if (sc.wall !== 'sky' && sc.wall !== 'space') dither(0, 0, w, hz * 0.35, 'rgba(0,0,0,A)', 0.45, 0);
     for (const p of sc.props) this.prop(p, g, px, w, hz, R, P);
 
-    // ---- floor (perspective rows)
+    // ---------------- floor in perspective
+    const vpx = w / 2, vpy = hz - (h - hz) * 1.6;
+    const xAt = (xb: number, y: number) => vpx + (xb - vpx) * (y - vpy) / (h - vpy);
     px(0, hz, w, h - hz, f0);
-    px(0, hz, w, P * 2, shade(f0, -0.45));
-    let y = hz + P * 2, row = 0;
-    while (y < h) {
-      const hh = Math.max(P * 2, q((y - hz) * 0.18 + P * 3));
-      switch (sc.floor) {
-        case 'tiles': {
-          const tw = hh * 2;
-          for (let x = (row % 2) * tw * 0.5 - tw; x < w; x += tw) px(x, y, tw, hh, (Math.floor(x / tw) + row) % 2 ? f0 : f1);
-          px(0, y, w, P, shade(f0, -0.25));
-          break;
+    const rows = 8;
+    const rowY = (i: number) => hz + (h - hz) * Math.pow(i / rows, 1.45);
+    const quad = (xa: number, xb: number, y0: number, y1: number, c: string) => {
+      g.fillStyle = c; g.beginPath();
+      g.moveTo(xAt(xa, y0), y0); g.lineTo(xAt(xb, y0), y0); g.lineTo(xAt(xb, y1), y1); g.lineTo(xAt(xa, y1), y1); g.fill();
+    };
+    switch (sc.floor) {
+      case 'tiles': case 'liner': {
+        const tw = sc.floor === 'liner' ? w / 10 : w / 7;
+        for (let i = 0; i < rows; i++) for (let k = -12; k < 12; k++) {
+          const xa = vpx + k * tw;
+          quad(xa, xa + tw, rowY(i), rowY(i + 1), (i + k) % 2 ? f0 : f1);
         }
-        case 'wood':
-          px(0, y, w, hh, row % 2 ? f0 : f1); px(0, y, w, P, shade(f0, -0.35));
-          for (let x = R() * 200; x < w; x += 120 + R() * 160) px(x, y, P, hh, shade(f0, -0.35));
-          break;
-        case 'concrete': case 'dirt': case 'asphalt':
-          for (let i = 0; i < w / 18; i++) px(R() * w, y + R() * hh, P * (sc.floor === 'dirt' ? 2 : 1), P, R() < 0.5 ? f1 : shade(f0, 0.12));
-          break;
-        case 'metal':
-          for (let x = (row % 2) * P * 4; x < w; x += P * 8) px(x, y + hh / 2, P * 3, P, shade(f0, 0.3));
-          px(0, y, w, P, shade(f0, -0.25));
-          break;
+        if (sc.floor === 'liner') for (let i = 0; i < 60; i++) { const y = hz + (h - hz) * R(); px(R() * w, y, P * 2, P * 2, 'rgba(214,48,49,0.35)'); }
+        else { g.fillStyle = shade(f0, -0.3); for (let i = 1; i < rows; i++) g.fillRect(0, q(rowY(i)), w, P); }
+        break;
       }
-      y += hh; row++;
+      case 'wood': {
+        const pw = w / 9;
+        for (let k = -10; k < 10; k++) {
+          const xa = vpx + k * pw;
+          quad(xa, xa + pw, hz, h, k % 2 ? f0 : f1);
+          g.strokeStyle = shade(f0, -0.4); g.lineWidth = P; g.beginPath(); g.moveTo(xAt(xa, hz), hz); g.lineTo(xAt(xa, h), h); g.stroke();
+          for (let j = 0; j < 2; j++) { const y = hz + (h - hz) * R(); const x0 = xAt(xa, y), x1 = xAt(xa + pw, y); px(x0, y, x1 - x0, P, shade(f0, -0.35)); }
+        }
+        break;
+      }
+      case 'metal':
+        for (let i = 0; i < rows; i++) {
+          const y0 = rowY(i), y1 = rowY(i + 1);
+          for (let k = -14; k < 14; k++) { const xa = vpx + k * (w / 10); const cx = xAt(xa + w / 20, (y0 + y1) / 2); px(cx, (y0 + y1) / 2, Math.max(P, (y1 - y0) * 0.3), P, shade(f0, 0.3)); }
+          px(0, y0, w, P, shade(f0, -0.3));
+        }
+        break;
+      default: // concrete / dirt / asphalt: speckles thinning with distance
+        for (let i = 0; i < (w * (h - hz)) / 300; i++) {
+          const t = Math.pow(R(), 0.7), y = hz + (h - hz) * t;
+          px(R() * w, y, P * (sc.floor === 'dirt' ? 1 + Math.round(t * 2) : 1), P, R() < 0.5 ? f1 : shade(f0, 0.12));
+        }
+        for (let i = 0; i < 5; i++) { const y = hz + (h - hz) * (0.2 + R() * 0.7); g.fillStyle = 'rgba(0,0,0,0.07)'; g.beginPath(); g.ellipse(R() * w, y, w * 0.08, (h - hz) * 0.05, 0, 0, 7); g.fill(); }
+        if (sc.floor === 'asphalt') { g.strokeStyle = '#f1c40f'; g.lineWidth = P * 2; for (let k = -3; k <= 3; k++) { const xb = vpx + k * w * 0.32; g.beginPath(); g.moveTo(xAt(xb, hz + (h - hz) * 0.1), hz + (h - hz) * 0.1); g.lineTo(xAt(xb, h), h); g.stroke(); } }
     }
-    if (sc.floor === 'asphalt') for (let x = w * 0.15; x < w; x += w * 0.28) { px(x, hz + (h - hz) * 0.25, P * 2, (h - hz) * 0.75, '#f1c40f'); }
-    if (sc.props.includes('hazard')) for (let x = 0; x < w; x += P * 8) px(x, hz - P * 3, P * 4, P * 3, (x / (P * 8)) % 2 ? '#f1c40f' : '#222');
-    // dithered vignette
-    g.fillStyle = 'rgba(0,0,0,0.3)';
-    for (let yy = 0; yy < h; yy += P) for (let x = 0; x < w; x += P) {
-      const dx = (x - w / 2) / (w / 2), dy = (yy - h / 2) / (h / 2);
-      const d = dx * dx * 0.55 + dy * dy * 0.5;
-      if (d > 0.5 && ((x / P + yy / P) % 2 === 0 || d > 0.8)) g.fillRect(x, yy, P, P);
+    // baseboard + contact shadow + light pool
+    px(0, hz - P * 2, w, P * 3, shade(w0, -0.5));
+    px(0, hz - P * 2, w, P, shade(w0, -0.1));
+    dither(0, hz + P, w, (h - hz) * 0.22, 'rgba(0,0,0,A)', 0.35, 0);
+    const lc = sc.wall === 'space' ? 'rgba(162,155,254,A)' : 'rgba(255,240,200,A)';
+    for (let y = hz; y < h; y += P) {
+      const t = (y - (hz + (h - hz) * 0.55)) / ((h - hz) * 0.5);
+      const half = w * 0.38 * Math.sqrt(Math.max(0, 1 - t * t));
+      if (half <= 0) continue;
+      g.fillStyle = lc.replace('A', '0.07');
+      g.fillRect(q(w / 2 - half), y, q(half * 2), P);
+    }
+    if (box) {
+      // drawer side walls and front lip
+      for (const s of [-1, 1]) {
+        const x0 = s < 0 ? 0 : w, x1 = s < 0 ? side : w - side;
+        g.fillStyle = shade(w0, -0.25);
+        g.beginPath(); g.moveTo(x0, 0); g.lineTo(x1, 0); g.lineTo(x1, hz); g.lineTo(x0, h); g.fill();
+        g.fillStyle = shade(w0, -0.45); g.fillRect(q(x1) - (s < 0 ? 0 : P), 0, P, hz);
+      }
+      px(0, h - P * 5, w, P * 5, shade(w0, -0.1));
+      px(0, h - P * 5, w, P, shade(w0, 0.3));
+    }
+    if (sc.props.includes('hazard')) for (let x = 0; x < w; x += P * 8) px(x, hz - P * 4, P * 4, P * 2, (x / (P * 8)) % 2 ? '#f1c40f' : '#222');
+    if (vignette) {
+      g.fillStyle = 'rgba(0,0,0,0.28)';
+      for (let yy = 0; yy < h; yy += P) for (let x = 0; x < w; x += P) {
+        const dx = (x - w / 2) / (w / 2), dy = (yy - h / 2) / (h / 2);
+        const d = dx * dx * 0.55 + dy * dy * 0.5;
+        if (d > 0.55 && ((x / P + yy / P) % 2 === 0 || d > 0.85)) g.fillRect(x, yy, P, P);
+      }
     }
   }
 
   private prop(p: string, g: CanvasRenderingContext2D, px: (x: number, y: number, w: number, h: number, c: string) => void, w: number, hz: number, R: () => number, P: number) {
     switch (p) {
+      case 'drawerbits':
+        // forgotten bits stuck to the back of the drawer: a ruler, a recipe card, a button
+        px(w * 0.15, hz * 0.55, w * 0.3, P * 4, '#f1c40f'); for (let x = w * 0.15; x < w * 0.45; x += P * 4) px(x, hz * 0.55, P, P * 2, '#2d3436');
+        px(w * 0.62, hz * 0.3, w * 0.12, hz * 0.4, '#fffaf0'); for (let k = 0; k < 4; k++) px(w * 0.63, hz * (0.36 + k * 0.08), w * 0.09, P, '#b2bec3');
+        px(w * 0.8, hz * 0.62, P * 5, P * 5, '#e84393'); px(w * 0.8 + P, hz * 0.62 + P, P, P, '#2d3436'); px(w * 0.8 + P * 3, hz * 0.62 + P * 3, P, P, '#2d3436');
+        break;
       case 'cabinets':
         for (const x0 of [w * 0.03, w * 0.68]) {
           px(x0, hz * 0.12, w * 0.28, hz * 0.32, '#6d4c41'); px(x0, hz * 0.12, w * 0.28, P, '#8d6e63');
@@ -218,9 +302,9 @@ export class Renderer {
       case 'neon':
       case 'sale': {
         const txt = p === 'neon' ? 'GELADA' : 'QUEIMA!';
-        g.font = `${Math.round(P * 9)}px 'Pixelify Sans', monospace`;
+        g.font = `${Math.round(P * 7)}px 'Press Start 2P', monospace`;
         g.textAlign = 'center';
-        const x = w * 0.5, y = hz * (p === 'neon' ? 0.25 : 0.62);
+        const x = w * (p === 'neon' ? 0.6 : 0.5), y = hz * (p === 'neon' ? 0.68 : 0.62);
         g.fillStyle = p === 'neon' ? 'rgba(255,64,160,0.25)' : '#c0392b';
         if (p === 'sale') px(x - w * 0.12, y - P * 10, w * 0.24, P * 14, '#c0392b');
         else g.fillRect(x - w * 0.13, y - P * 11, w * 0.26, P * 15);

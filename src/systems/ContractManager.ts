@@ -4,11 +4,13 @@ import { TOOL_MAP } from '../data/tools';
 import type { EconomyManager } from './EconomyManager';
 import { fmt } from '../core/util';
 
-/** A contract is a big stock of items worked through over several timed runs. */
+/**
+ * The selected contract. Every run starts from the full stock: the job only counts
+ * as done when everything is crushed within a single run.
+ */
 export class ContractManager {
   active: ContractDef | null = null;
   left: Record<string, number> = {};
-  runs = 0;
 
   constructor(private save: SaveData, private econ: EconomyManager) {}
 
@@ -24,20 +26,22 @@ export class ContractManager {
 
   available() { return CONTRACTS.filter((c) => this.lockReasons(c).length === 0); }
 
-  start(id: string) {
+  select(id: string) {
     const c = CONTRACT_MAP[id];
     if (!c) return false;
     this.active = c;
-    const saved = this.save.active?.id === id ? this.save.active : null;
-    this.left = saved ? { ...saved.left } : Object.fromEntries(c.stock);
-    this.runs = saved ? saved.runs : 0;
-    this.persist();
+    this.reset();
+    this.save.active = { id };
     return true;
   }
+
+  /** refill the whole stock (start of every run) */
+  reset() { this.left = this.active ? Object.fromEntries(this.active.stock) : {}; }
 
   total() { return this.active ? stockTotal(this.active) : 0; }
   remaining() { return Object.values(this.left).reduce((a, n) => a + n, 0); }
   crushed() { return this.total() - this.remaining(); }
+  record() { return this.active ? this.save.contracts[this.active.id] : undefined; }
 
   /** Pick the next item for the floor, given how many of each are already lying there. */
   draw(onField: Record<string, number>): string | null {
@@ -55,31 +59,34 @@ export class ContractManager {
 
   onDestroyed(id: string) { if (this.left[id] > 0) this.left[id]--; }
 
-  persist() { this.save.active = this.active ? { id: this.active.id, left: { ...this.left }, runs: this.runs } : null; }
+  /** store the result of a run (fraction of the stock crushed) */
+  recordRun(done: boolean) {
+    const c = this.active!;
+    const rec = this.save.contracts[c.id] ?? { done: 0, best: 0, tries: 0 };
+    rec.tries++;
+    rec.best = Math.max(rec.best, this.crushed() / this.total());
+    if (done) rec.done++;
+    this.save.contracts[c.id] = rec;
+  }
 
   rewards() {
     const c = this.active!;
     const first = !this.save.contracts[c.id]?.done;
     const s = this.econ.stats;
-    const mult = (1 + s.contractBonus) * (first ? 1 : 0.5);
+    const mult = (1 + s.contractBonus) * (first ? 1 : 0.4);
     return {
       first,
       money: Math.ceil(c.money * mult * (1 + s.moneyMult)),
       scrap: Math.ceil(c.scrap * mult * (1 + s.scrapMult)),
-      rep: Math.round(c.rep * (first ? 1 : 0.25) * (1 + s.repMult) * 100) / 100,
+      rep: Math.round(c.rep * (first ? 1 : 0.2) * (1 + s.repMult) * 100) / 100,
       sp: first ? Math.ceil(c.sp * (1 + s.spMult)) : 0,
-      runs: this.runs,
     };
   }
 
-  finish() {
-    const c = this.active!;
-    const rec = this.save.contracts[c.id] ?? { done: 0, runs: 0 };
-    rec.done++;
-    rec.runs = rec.runs ? Math.min(rec.runs, this.runs) : this.runs;
-    this.save.contracts[c.id] = rec;
-    this.active = null;
-    this.left = {};
-    this.persist();
+  /** next contract after the active one, if unlocked */
+  next(): ContractDef | null {
+    const i = CONTRACTS.findIndex((c) => c.id === this.active?.id);
+    const n = CONTRACTS[i + 1];
+    return n && !this.lockReasons(n).length ? n : null;
   }
 }

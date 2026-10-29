@@ -4,7 +4,7 @@ import { TOOLS, TOOL_MAP, UPGRADE_MAX } from '../data/tools';
 import { CONTRACTS } from '../data/contracts';
 import { OBJECTS } from '../data/objects';
 import { CHALLENGES } from '../data/challenges';
-import { stockTotal } from '../data/contracts';
+import { stockTotal, SERIES_LIST } from '../data/contracts';
 import { SCENES } from '../data/scenes';
 import { SaveManager, defaultSave } from '../systems/SaveManager';
 import type { SkillTreeView } from './SkillTreeView';
@@ -27,6 +27,8 @@ export class UIManager {
     $('modal').addEventListener('input', (ev) => this.onPanelInput(ev));
     window.addEventListener('keydown', (ev) => this.onKey(ev));
     $('lobby').addEventListener('click', (ev) => {
+      const nx = (ev.target as HTMLElement).closest<HTMLElement>('[data-next]');
+      if (nx) { e.audio.click(); e.openContract(nx.dataset.next!); return; }
       const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-lb]');
       if (!b) return;
       e.audio.unlock(); e.audio.click();
@@ -95,11 +97,12 @@ export class UIManager {
     const e = this.e, c = e.contracts;
     const el = $('contract-hud');
     if (!c.active) { el.innerHTML = `<div class="cn">Sem contrato</div><div class="cl">Abra 📋 Contratos</div>`; return; }
-    const a = c.active, total = c.total(), done = c.crushed();
-    el.innerHTML = `<div class="cn">#${a.num} ${a.name}</div><div class="cl">${a.client}</div>
-      <div class="row"><span>Itens ${done}/${total}</span><span>Run ${c.runs}</span></div>
-      <div class="bar"><div style="width:${(done / total) * 100}%"></div></div>
-      ${e.phase !== 'lobby' ? `<div class="row"><span>Nesta run: ${e.run.crushed}</span><span>💵 ${fmt(e.run.money)}</span></div>` : ''}`;
+    const a = c.active, total = c.total(), done = e.phase === 'lobby' ? 0 : c.crushed();
+    const best = c.record()?.best ?? 0;
+    el.innerHTML = `<div class="cn">${a.icon} ${a.name}</div><div class="cl">Parte ${a.part}/${a.parts} · ${a.subtitle}</div>
+      <div class="row"><span>${e.phase === 'lobby' ? 'Meta' : 'Esmagados'}</span><b>${done}/${total}</b></div>
+      <div class="bar"><div style="width:${(done / total) * 100}%"></div><i style="left:${best * 100}%"></i></div>
+      <div class="row sub"><span>Recorde ${Math.round(best * 100)}%</span>${e.phase !== 'lobby' ? `<span>💵 ${fmt(e.run.money)}</span>` : ''}</div>`;
   }
 
   /** big run timer at the top */
@@ -143,27 +146,32 @@ export class UIManager {
   showLobby(kind: 'intro' | 'summary' | 'complete', data?: any) {
     const e = this.e, c = e.contracts.active;
     const el = $('lobby');
+    if (!c) return;
+    const t = e.econ.runTime().toFixed(0);
+    const items = c.stock.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
+    const head = `<div class="lb-hero" style="background-image:url(${e.renderer.sceneThumb(c.scene, 560, 150)})"><span class="lb-face">${c.icon}</span>
+      <div class="lb-title"><div class="lb-tag">${c.name} · PARTE ${c.part}/${c.parts}</div><h2>${c.subtitle}</h2></div></div>`;
+    const btns = (main: string) => `<div class="lb-btns">${main}<button class="btn alt" data-lb="tree">🌳 Árvore${e.tree.affordableCount() ? ` <i class="dot">${e.tree.affordableCount()}</i>` : ''}</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button><button class="btn alt" data-lb="contracts">📋 Contratos</button></div>`;
     let h = '';
     if (kind === 'complete') {
-      h = `<div class="lb-tag">CONTRATO CONCLUÍDO!</div><h2>${data.contract.name}</h2>
-        <p class="quote">${data.contract.client}: "Obrigado! Ficou tudo um bloquinho só."</p>
+      const next = e.contracts.next();
+      h = `${head}<div class="lb-body"><div class="lb-win">✔ CONTRATO CONCLUÍDO!</div>
+        <p class="quote">${c.client}: "Obrigado! Ficou tudo um bloquinho só."</p>
         <div class="lb-rw">💵 +${fmt(data.money)} &nbsp; ⚙️ +${fmt(data.scrap)} &nbsp; ⭐ +${data.rep}${data.sp ? ` &nbsp; 🧠 +${data.sp}` : ''}</div>
-        <div class="sub">Concluído em ${data.runs} run${data.runs > 1 ? 's' : ''}.</div>
-        <div class="lb-btns"><button class="btn big" data-lb="contracts">📋 Escolher próximo contrato</button><button class="btn alt" data-lb="tree">🌳 Árvore</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button></div>`;
-    } else if (kind === 'intro' && c) {
-      const items = c.stock.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
-      h = `<div class="lb-tag">CONTRATO #${c.num}</div><h2>${c.name}</h2><div class="sub">${c.client}</div>
-        <p>${c.story}</p><p class="quote">${c.quote}</p>
+        ${btns(next ? `<button class="btn big" data-next="${next.id}">▶ Próximo: ${next.part > 1 ? `Parte ${next.part}` : next.name}</button>` : `<button class="btn big" data-lb="contracts">📋 Escolher contrato</button>`)}</div>`;
+    } else if (kind === 'intro') {
+      h = `${head}<div class="lb-body"><p>${c.story}</p><p class="quote">${c.quote}</p>
         <div class="chips">${items}</div>
-        <div class="sub">${e.contracts.crushed()}/${e.contracts.total()} itens esmagados · cada run dura ${e.econ.runTime().toFixed(0)}s</div>
-        <div class="lb-btns"><button class="btn big" data-lb="run">▶ ${e.contracts.runs ? 'Continuar' : 'Começar'} run</button><button class="btn alt" data-lb="tree">🌳 Árvore</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button><button class="btn alt" data-lb="contracts">📋</button></div>`;
-    } else if (c) {
-      const r = e.run;
-      h = `<div class="lb-tag">FIM DA RUN ${e.contracts.runs}</div><h2>${c.name}</h2>
-        <div class="lb-stats"><div><b>${r.crushed}</b><span>esmagados</span></div><div><b>💵 ${fmt(r.money)}</b><span>dinheiro</span></div><div><b>⚙️ ${fmt(r.scrap)}</b><span>sucata</span></div>${r.rare ? `<div><b>💎 ${r.rare}</b><span>raros</span></div>` : ''}</div>
-        <div class="bar"><div style="width:${(e.contracts.crushed() / e.contracts.total()) * 100}%"></div></div>
-        <div class="sub">Contrato: ${e.contracts.crushed()}/${e.contracts.total()} · faltam ${e.contracts.remaining()} itens</div>
-        <div class="lb-btns"><button class="btn big" data-lb="run">▶ Nova run (${e.econ.runTime().toFixed(0)}s)</button><button class="btn alt" data-lb="tree">🌳 Árvore${e.tree.affordableCount() ? ` (${e.tree.affordableCount()})` : ''}</button><button class="btn alt" data-lb="shop">🛒 Ferramentas</button></div>`;
+        <div class="lb-goal">🎯 Esmague <b>${e.contracts.total()} itens</b> em uma única run de <b>${t}s</b></div>
+        ${btns(`<button class="btn big" data-lb="run">▶ Começar run</button>`)}</div>`;
+    } else {
+      const r = e.run, total = e.contracts.total();
+      const pct = Math.round((r.crushed / total) * 100), best = Math.round((e.contracts.record()?.best ?? 0) * 100);
+      h = `${head}<div class="lb-body"><div class="lb-lose">⏱ O TEMPO ACABOU — ${pct}%</div>
+        <div class="bar big"><div style="width:${pct}%"></div><i style="left:${best}%"></i></div>
+        <div class="lb-stats"><div><b>${r.crushed}/${total}</b><span>esmagados</span></div><div><b>💵 ${fmt(r.money)}</b><span>ganhos</span></div><div><b>⚙️ ${fmt(r.scrap)}</b><span>sucata</span></div><div><b>${best}%</b><span>recorde</span></div></div>
+        <div class="sub">Melhore força, área e fôlego na árvore e tente de novo. Cada run recomeça do zero.</div>
+        ${btns(`<button class="btn big" data-lb="run">↻ Tentar de novo (${t}s)</button>`)}</div>`;
     }
     el.innerHTML = `<div class="lb-card">${h}</div>`;
     el.classList.remove('hidden');
@@ -185,7 +193,7 @@ export class UIManager {
   private renderPanel(keepScroll = false) {
     const body = $('panel-body');
     const top = body.scrollTop;
-    const titles: Record<PanelId, string> = { contracts: '📋 Contratos', shop: '🛒 Ferramentas & Equipamentos', challenges: '🏆 Desafios', settings: '⚙️ Ajustes & Estatísticas' };
+    const titles: Record<PanelId, string> = { contracts: '📋 Quadro de Contratos', shop: '🛒 Ferramentas & Equipamentos', challenges: '🏆 Desafios', settings: '⚙️ Ajustes & Estatísticas' };
     $('panel-title').textContent = titles[this.panel!];
     if (keepScroll && this.panel === 'settings') return; // avoid resetting inputs
     body.innerHTML = this.panel === 'contracts' ? this.contractsHtml() : this.panel === 'shop' ? this.shopHtml() : this.panel === 'challenges' ? this.challengesHtml() : this.settingsHtml();
@@ -194,25 +202,25 @@ export class UIManager {
 
   private contractsHtml() {
     const e = this.e, s = e.save;
-    const cap = e.econ.capability();
-    let h = `<div class="set"><label>Pressão máxima da empresa: <b>${fmt(cap)}</b> · Reputação: <b>${fmt(s.rep)}</b></label></div><div class="grid">`;
-    let shownLocked = 0;
-    for (const c of CONTRACTS) {
-      const lock = e.contracts.lockReasons(c);
-      if (lock.length && shownLocked++ >= 2) continue;
-      const rec = s.contracts[c.id];
-      const active = e.contracts.active?.id === c.id;
-      const items = c.stock.map(([o, n]) => `<span class="chip">${n}× ${OBJECTS[o].name}</span>`).join('');
-      const prog = active ? `<div class="bar"><div style="width:${(e.contracts.crushed() / e.contracts.total()) * 100}%"></div></div><div class="sub">${e.contracts.crushed()}/${e.contracts.total()} · ${e.contracts.runs} runs</div>` : '';
-      h += `<div class="item ${lock.length ? 'locked' : ''} ${active ? 'active' : ''}">
-        <h4><span class="sub">#${c.num}</span> ${c.name}</h4>
-        <div class="sub">${c.client} · ${SCENES[c.scene].name}</div>
-        <div>${c.story}</div>
-        <div class="chips">${items}</div>
-        <div class="row"><span>💵 ${fmt(c.money)} · ⚙️ ${fmt(c.scrap)} · ⭐ ${c.rep}${!rec?.done ? ` · 🧠 ${c.sp}` : ''}</span><span class="sub">${stockTotal(c)} itens</span></div>
-        ${prog}
-        ${rec?.done ? `<div class="sub">✔ Concluído ${rec.done}× · melhor: ${rec.runs} runs</div>` : ''}
-        ${lock.length ? `<div class="chips">${lock.map((l) => `<span class="chip bad">🔒 ${l}</span>`).join('')}</div>` : active ? `<button class="btn" data-close>Continuar</button>` : `<button class="btn" data-contract="${c.id}">${rec?.done ? 'Refazer (recompensa menor)' : 'Aceitar contrato'}</button>`}
+    let h = `<div class="set"><label>Pressão máxima: <b>${fmt(e.econ.capability())}</b> · Reputação: <b>${fmt(s.rep)}</b> · Fôlego: <b>${e.econ.runTime().toFixed(0)}s</b></label></div><div class="series">`;
+    let lockedShown = 0;
+    for (const se of SERIES_LIST) {
+      const parts = CONTRACTS.filter((c) => c.series === se.id);
+      const open = parts.some((c) => !e.contracts.lockReasons(c).length || s.contracts[c.id]?.done);
+      if (!open && lockedShown++ >= 1) continue;
+      const done = parts.filter((c) => s.contracts[c.id]?.done).length;
+      const btns = parts.map((c) => {
+        const rec = s.contracts[c.id];
+        const lock = e.contracts.lockReasons(c);
+        const st = rec?.done ? 'done' : lock.length ? 'locked' : 'open';
+        const act = e.contracts.active?.id === c.id ? ' active' : '';
+        return `<button class="part ${st}${act}" data-contract="${c.id}" ${st === 'locked' ? 'disabled' : ''} title="${lock.join(', ')}">
+          <b>${c.part}</b><span>${stockTotal(c)} itens</span><em>${st === 'done' ? '✔' : st === 'locked' ? '🔒' : rec ? `${Math.round(rec.best * 100)}%` : 'NOVO'}</em></button>`;
+      }).join('');
+      const lockTxt = !open ? `<div class="chips">${e.contracts.lockReasons(parts[0]).map((l) => `<span class="chip bad">🔒 ${l}</span>`).join('')}</div>` : '';
+      h += `<div class="scard ${open ? '' : 'locked'}">
+        <div class="sthumb" style="background-image:url(${e.renderer.sceneThumb(se.scene)})"><span class="sface">${se.icon}</span><span class="sprog">${done}/${parts.length}</span></div>
+        <div class="sbody"><h3>${se.name}</h3><div class="sub">${se.client}</div><p class="quote">${se.quote}</p>${lockTxt}<div class="parts">${btns}</div></div>
       </div>`;
     }
     return h + '</div>';
@@ -300,6 +308,7 @@ export class UIManager {
     const d = t.dataset;
     if (d.close !== undefined) { this.closePanel(); return; }
     if (d.contract) { this.closePanel(); e.openContract(d.contract); e.audio.click(); return; }
+    if (d.next) { e.openContract(d.next); e.audio.click(); return; }
     if (d.buy) { if (e.econ.buyTool(d.buy)) { e.audio.buy(); this.toast(`${TOOL_MAP[d.buy].name} adquirida!`, TOOL_MAP[d.buy].icon); e.prog.onToolSwitch(d.buy); this.toolsKey = ''; } }
     if (d.up) { const [id, k] = d.up.split(':'); if (e.econ.buyUpgrade(id, k as 'f')) e.audio.buy(); }
     if (d.equip) e.equip(d.equip);

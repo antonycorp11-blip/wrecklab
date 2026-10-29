@@ -2,8 +2,9 @@ import type { SceneDef } from '../core/types';
 
 /** Location backdrops, one per client. Drawn procedurally in pixel art by the Renderer. */
 export const SCENES: Record<string, SceneDef> = {
+  drawer: { id: 'drawer', name: 'Gavetas da Dona Zuleide', wall: 'drawer', wallColors: ['#b07a46', '#9a6738'], floor: 'liner', floorColors: ['#f6e7c8', '#e9c9c9'], props: ['drawerbits'] },
   kitchen: { id: 'kitchen', name: 'Cozinha da Dona Zuleide', wall: 'tiles', wallColors: ['#f3e3c3', '#e8d2a8'], floor: 'tiles', floorColors: ['#d9c7a3', '#c4ae86'], props: ['cabinets', 'window', 'clock', 'plant'] },
-  drinks: { id: 'drinks', name: 'Depósito Gelada & Cia', wall: 'bricks', wallColors: ['#b5523b', '#8e3b2a'], floor: 'concrete', floorColors: ['#7f8c8d', '#6c7a7b'], props: ['shelves', 'crates', 'neon', 'fridge'] },
+  drinks: { id: 'drinks', name: 'Depósito Gelada & Cia', wall: 'bricks', wallColors: ['#b5523b', '#8e3b2a'], floor: 'concrete', floorColors: ['#8a9394', '#7b8586'], props: ['shelves', 'crates', 'neon', 'fridge'] },
   bikes: { id: 'bikes', name: 'Bicicletaria Pedal Torto', wall: 'planks', wallColors: ['#2e86ab', '#256d8c'], floor: 'wood', floorColors: ['#b07d48', '#9a6a3a'], props: ['bikes', 'posters', 'window', 'pegboard'] },
   moving: { id: 'moving', name: 'Casa dos Bragança', wall: 'planks', wallColors: ['#a29bfe', '#8c84f0'], floor: 'wood', floorColors: ['#c49a6c', '#ab845a'], props: ['boxes', 'window', 'frames', 'lamp'] },
   basement: { id: 'basement', name: 'Porão da Imobiliária Ferrugem', wall: 'concrete', wallColors: ['#4a4f55', '#3b3f44'], floor: 'concrete', floorColors: ['#55595e', '#4a4d52'], props: ['pipes', 'bulb', 'boxes', 'cobweb'] },
