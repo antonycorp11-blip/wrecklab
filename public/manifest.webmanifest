@@ -1,0 +1,10 @@
+{
+  "name": "Wreck Lab",
+  "short_name": "Wreck Lab",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#16130f",
+  "theme_color": "#16130f",
+  "start_url": "./",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
