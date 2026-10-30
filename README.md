@@ -1,73 +1,59 @@
-# WRECK LAB
+# ESFREGA!
 
-Jogo incremental 2D de destruição, deformação e evolução industrial. Comece amassando uma tampinha com um alicate velho e termine comprimindo naves estelares com um campo de implosão.
+Incremental aconchegante de faxina em pixel art, feito para celular (em pé ou deitado) e navegador.
 
-TypeScript + Vite + Canvas 2D. Sem engine, sem sprites e sem arquivos de áudio: objetos, cenários e sons são gerados por código.
-
-## Rodar localmente
-
-```bash
-npm install
-npm run dev      # servidor de desenvolvimento (acessível na rede local, bom para testar no celular)
-npm run build    # typecheck + build de produção em dist/
-npm run preview  # serve o build
-```
-
-## Deploy no Cloudflare
-
-O projeto está configurado para **Cloudflare Workers (static assets)**, via `wrangler.toml`.
-
-No painel (Workers & Pages → projeto conectado ao Git):
-- Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
-- Node: fixado em 20 pelo `.node-version`.
-
-Pelo terminal: `npm run build && npx wrangler deploy`.
-
-O `public/_headers` define cache longo para `/assets/*` e `no-cache` para o `index.html`.
+Você abre uma pequena firma de faxina em **Vila Maresia**, uma cidadezinha litorânea. Os moradores deixam pedidos no quadro de clientes: a janela do sótão da Vó Cida, o ventilador da padaria do Seu Jurandir, o banco da praça cheio de chiclete, a chapa da lanchonete do Bigode, o barco do Seu Tonho tomado de limo, o sino enferrujado do farol...
 
 ## Como se joga
 
-Os contratos vêm em séries (Gaveta 1–4, Distribuidora 1–3…), cada uma com cliente, história e cenário próprios. Em cada **run** (12 s no começo, mais com a família de habilidades *Fôlego*), segure e arraste a ferramenta sobre os itens espalhados para esmagar tudo o que passa embaixo. **Toda run recomeça do zero**: a parte só é concluída se você esmagar o estoque inteiro dentro de uma run. Os itens esmagados sempre rendem dinheiro e sucata, que viram upgrades na árvore e nas ferramentas até você ter capacidade para fechar a parte.
+- **Esfregue** a sujeira com o dedo ou com o mouse (segurando o botão; nos Ajustes dá para trocar por "clicar uma vez trava").
+- **Vai e volta** no mesmo lugar rende mais que deslizar: cada inversão de direção aumenta o multiplicador.
+- **Anel de contato**: o anel tracejado laranja é a área que você limpa. Fique dentro dele esfregando e a **pegada** enche até dobrar a força.
+- **Turno** com tempo limitado. A sujeira removida vira **Pó** e vai para o **pote**; pote cheio, o resto vira só faxina.
+- **Marca**: limpe o lugar até a marca dentro de um único turno e ele é **carimbado**, valendo 🌟 **Brilho**, a moeda rara que não dá para farmar. Deixar o lugar a 98,5% rende outro Brilho.
+- **Achados**: cada lugar esconde 3 objetos sob a sujeira. Devolvidos, o dono dá gorjeta e indica você para o próximo cliente.
+- **Árvore de habilidades** paga com Pó (e alguns nós com Brilho): pressão, unha mais dura, pote maior, fôlego, pegada, vai e volta, mãos quentes, varredura, alcance, cartões de visita (clientes extras), novas ferramentas e o Siri Ajudante.
 
-| Ação | PC | Mobile |
-| --- | --- | --- |
-| Esmagar | Segure o botão esquerdo e arraste | Segure e arraste (a ferramenta fica acima do dedo) |
-| Começar run | Botão ▶ ou `Espaço` | Botão ▶ |
-| Trocar ferramenta | Teclas `1`–`9` | Barra no canto inferior esquerdo |
-| Árvore de habilidades | `T` (roda do mouse = zoom, arrastar = mover) | 🌳 (arrastar, pinça para zoom) |
-| Ferramentas / Contratos | `F` / `C` | 🛒 / 📋 |
+### Tipos de sujeira
 
-## Arquitetura
+| Sujeira | Comportamento |
+| --- | --- |
+| 🌫️ Poeira | Sai fácil. |
+| 🍬 Chiclete | Só sai no vai e volta; deslizar quase não adianta. |
+| 🔥 Fuligem | Esfregar rápido demais espalha para os lados. |
+| 🍳 Gordura | A pegada não firma; mãos quentes derretem. |
+| 🦠 Limo | Volta a crescer onde você não está esfregando. |
+| 🔩 Ferrugem | Duríssima; precisa de unha forte ou espátula. |
+
+### Ferramentas
+
+Dedo, Esponja, Espátula, Escova de Aço e Vaporizador, cada uma com área, força e afinidade diferentes. São liberadas na árvore com Brilho.
+
+## Desenvolvimento
+
+```bash
+npm install
+npm run dev      # servidor local (acessível na rede para testar no celular)
+npm run build    # typecheck + build em dist/
+```
+
+TypeScript + Vite + Canvas 2D, sem engine e sem arquivos de imagem ou som: os cenários são pintados pixel a pixel em código (`src/data/places.ts`) e o áudio é sintetizado (`src/core/audio.ts`).
 
 ```
 src/
-  core/        GameEngine (loop, fluxo, combate), Renderer, InputManager, tipos, utilitários
-  systems/     DeformationSystem, ObjectFactory, ToolSystem, ContractManager, EconomyManager,
-               SkillTreeManager, ProgressionManager, SaveManager, AudioManager, ParticleSystem
-  ui/          UIManager (HUD e painéis DOM), SkillTreeView (mapa navegável em canvas)
-  data/        materiais, objetos, ferramentas, contratos, desafios, árvore de habilidades (declarativos)
+  core/   util, pintor de pixels (pix.ts), save, áudio
+  data/   sujeiras, ferramentas, lugares (arte + donos + achados), achados (sprites), habilidades
+  game/   game.ts (turno, entrada, render), surface.ts (grade de sujeira e regras de cada tipo), stats.ts
+  ui/     ui.ts (quadro, painel do lugar, HUD, resumo, ajustes), tree.ts (árvore navegável)
 ```
 
-### Deformação
+Para criar um lugar novo, adicione uma entrada em `PLACES` com a função `paint` (use `Pix.box`, `rect`, `circle`, `grad`...; `m = 1` marca o que pode sujar), as camadas de sujeira, a marca e os 3 achados.
 
-Cada objeto é uma composição de peças poligonais (carroceria, vidros, rodas, portas…) definidas em `data/objects.ts`. As bordas são subdivididas em uma malha de pontos de controle, e cada vértice guarda um deslocamento **plástico** (permanente) e um **elástico** (que volta, forte em borracha e plástico). Sobre isso atua:
+## Deploy no Cloudflare
 
-- **Amassados locais**: golpes empurram os vértices dentro do raio de contato; o alicate puxa a região para o ponto (beliscão).
-- **Campo de compressão global**: conforme a integridade cai, a altura diminui, a largura abaula e surgem dobras em sanfona (mais fortes em alumínio e aço).
-- **Restrições geométricas**: o pistão da prensa e as mandíbulas do torno achatam os vértices que ultrapassam a placa; a implosão puxa tudo para o centro com torção.
-- **Rachaduras procedurais** em vidro e madeira, peças que **soltam** em limites de dano e peças que **estilhaçam** em fragmentos.
+Configurado para Workers com arquivos estáticos (`wrangler.toml`):
 
-A resistência vem da relação pressão × dureza (com bônus por material): ferramentas fracas mal arranham materiais duros, e isso aparece no visual, no som e no aviso “MUITO DURO!”.
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
 
-### Expandindo conteúdo
-
-- **Objeto novo**: adicione um `def({...})` em `data/objects.ts` usando os helpers `R`, `RR`, `C`, `P`, `L`.
-- **Contrato novo**: adicione uma entrada em `data/contracts.ts` (história, frase do cliente, cenário e estoque).
-- **Cenário novo**: adicione em `data/scenes.ts` combinando parede, piso e adereços.
-- **Ferramenta nova**: adicione em `data/tools.ts` (`kind`: `pinch`, `strike`, `press`, `implode`).
-- **Árvore**: os mais de 200 nós são gerados a partir das tabelas de famílias em `data/skills.ts`. Para crescer a árvore, adicione entradas nas listas `spine`/`side`, novas famílias, ligações cruzadas ou regiões.
-
-### Salvamento
-
-Fica em `localStorage` (`wrecklab.save`), com salvamento automático a cada 8 s e ao esconder ou fechar a página. O save tem versão (`SAVE_VERSION`), é sanitizado ao carregar e tem um mapa de migrações em `SaveManager.ts`. Dá para exportar e importar o save em Ajustes.
+O save fica no `localStorage` do navegador (`esfrega.save`), com salvamento automático.

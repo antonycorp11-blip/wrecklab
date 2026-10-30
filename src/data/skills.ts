@@ -1,241 +1,115 @@
-import type { SkillNode, StatKey, SkillCurrency } from '../core/types';
+export type StatKey =
+  | 'bite' | 'tough' | 'ring' | 'gripRate' | 'gripMax' | 'quick' | 'scrub' | 'time' | 'jar' | 'dust'
+  | 'heat' | 'sweep' | 'sense' | 'tip' | 'cards' | 'lucky' | 'echo' | 'helper' | 'calm' | 'slick' | 'overtime' | 'polish';
 
-/**
- * The skill tree is generated from declarative family templates, so it can grow
- * to hundreds of nodes by extending the tables below.
- */
-interface Family {
+export type Currency = 'po' | 'brilho';
+
+export interface SkillNode {
   id: string;
+  parent: string | null;
+  x: number;
+  y: number;
+  name: string;
+  icon: string;
+  desc: string;
+  effects: [StatKey, number][];
+  cost: number;
+  growth: number;
+  /** 0 = unlimited */
+  max: number;
+  curr: Currency;
+  /** ring color in the tree */
   color: string;
-  angle: number;
-  spine: [string, string, StatKey, number][];
-  side: [string, string, StatKey, number][];
 }
 
-const FAMILIES: Family[] = [
-  {
-    id: 'Força', color: '#e74c3c', angle: -90,
-    spine: [
-      ['Pressão Básica', '💪', 'forceMult', 0.15], ['Força Adicional', '➕', 'forceFlat', 1], ['Multiplicador de Impacto', '✖️', 'forceMult', 0.25],
-      ['Compressão Profunda', '⬇️', 'forceMult', 0.3], ['Ruptura Estrutural', '🧨', 'pierce', 0.04], ['Pressão Extrema', '🔥', 'forceMult', 0.5],
-      ['Supercompressão', '🗜️', 'forceMult', 0.75], ['Força Titânica', '🦾', 'forceMult', 1], ['Esmagamento Absoluto', '☄️', 'forceMult', 1.5],
-      ['Densidade Crítica', '⚫', 'pierce', 0.05], ['Pressão Estelar', '🌟', 'forceMult', 2.5], ['Colapso Total', '🕳️', 'forceMult', 4],
-    ],
-    side: [
-      ['Perfuração', '🔩', 'pierce', 0.03], ['Amassado Profundo', '🥫', 'dentMult', 0.15], ['Golpe Certeiro', '🎯', 'critChance', 0.02],
-      ['Impacto Brutal', '💥', 'critMult', 0.25], ['Punho de Aço', '🤜', 'vsMetal', 0.1], ['Músculo Extra', '🏋️', 'forceFlat', 2],
-    ],
-  },
-  {
-    id: 'Velocidade', color: '#f1c40f', angle: -30,
-    spine: [
-      ['Golpes Rápidos', '⚡', 'rateMult', 0.08], ['Recuperação de Ferramenta', '🔁', 'rateMult', 0.1], ['Ciclos de Prensa', '⏬', 'pressSpeed', 0.15],
-      ['Pulso Firme', '✋', 'rateMult', 0.12], ['Velocidade Hidráulica', '🛢️', 'pressSpeed', 0.2], ['Compressão Contínua', '♾️', 'forceMult', 0.2],
-      ['Ataques Múltiplos', '👊', 'doubleHit', 0.05], ['Reflexo Industrial', '🏎️', 'rateMult', 0.18], ['Pistão Turbo', '🚀', 'pressSpeed', 0.3],
-      ['Frenesi', '🌪️', 'rateMult', 0.25], ['Tempo Comprimido', '⌛', 'rateMult', 0.3], ['Instantâneo', '⚡', 'rateMult', 0.4],
-    ],
-    side: [
-      ['Esteira Rápida', '🛤️', 'feedSpeed', 0.15], ['Pegada Leve', '🪶', 'rateMult', 0.05], ['Lubrificação', '🧴', 'pressSpeed', 0.1],
-      ['Golpe Duplo Menor', '✌️', 'doubleHit', 0.03], ['Ritmo', '🥁', 'resonance', 0.02], ['Fluxo', '🌊', 'feedSpeed', 0.1],
-    ],
-  },
-  {
-    id: 'Área', color: '#2ecc71', angle: 30,
-    spine: [
-      ['Mandíbulas Maiores', '🦷', 'areaMult', 0.1], ['Cabeça Ampliada', '🔨', 'areaMult', 0.12], ['Pistões Largos', '⬛', 'areaMult', 0.12],
-      ['Área Expandida', '⭕', 'areaMult', 0.15], ['Compressão Simultânea', '🔗', 'chain', 0.05], ['Onda de Choque', '〰️', 'shockwave', 0.06],
-      ['Alcance Industrial', '📐', 'areaMult', 0.2], ['Impacto Sísmico', '🌋', 'shockwave', 0.08], ['Raio Colossal', '🌐', 'areaMult', 0.25],
-      ['Destruição Massiva', '🏚️', 'forceMult', 0.6], ['Varredura', '🧹', 'areaMult', 0.3], ['Horizonte de Eventos', '🌑', 'shockwave', 0.12],
-    ],
-    side: [
-      ['Fragmentação', '🧩', 'fragMult', 0.2], ['Estilhaçador', '🪟', 'vsGlass', 0.2], ['Lascador', '🪵', 'vsWood', 0.2],
-      ['Ampla Pegada', '🤲', 'areaMult', 0.06], ['Esmaga-Plástico', '🧴', 'vsPlastic', 0.2], ['Eco', '🔊', 'shockwave', 0.03],
-    ],
-  },
-  {
-    id: 'Economia', color: '#3498db', angle: 90,
-    spine: [
-      ['Valor de Sucata', '⚙️', 'scrapMult', 0.15], ['Recuperação de Metais', '🧲', 'moneyMult', 0.15], ['Bônus por Contrato', '📜', 'contractBonus', 0.2],
-      ['Multiplicador de Recompensa', '💰', 'moneyMult', 0.25], ['Eficiência de Reciclagem', '♻️', 'scrapMult', 0.3], ['Negociador', '🤝', 'repMult', 0.15],
-      ['Mercado Negro', '🕶️', 'moneyMult', 0.5], ['Garimpo', '💎', 'rareChance', 0.01], ['Fundição Própria', '🏭', 'scrapMult', 0.6],
-      ['Monopólio', '🏦', 'moneyMult', 1], ['Bolsa de Metais', '📈', 'contractBonus', 0.6], ['Império da Sucata', '👑', 'moneyMult', 2],
-    ],
-    side: [
-      ['Fornecedor Barato', '🏷️', 'toolDiscount', 0.03], ['Olho Clínico', '🔍', 'rareChance', 0.005], ['Reputação', '⭐', 'repMult', 0.1],
-      ['Troco Extra', '🪙', 'moneyMult', 0.08], ['Separação', '🗂️', 'scrapMult', 0.1], ['Mentoria', '🎓', 'spMult', 0.1],
-    ],
-  },
-  {
-    id: 'Fôlego', color: '#1abc9c', angle: 120,
-    spine: [
-      ['Fôlego', '🫁', 'runTime', 2], ['Turno Extra', '⏱️', 'runTime', 2], ['Mesa Cheia', '🧺', 'fieldCap', 2],
-      ['Café Forte', '☕', 'runTime', 3], ['Segundo Fôlego', '💨', 'runTime', 3], ['Pilha de Sucata', '🗑️', 'fieldCap', 3],
-      ['Hora Extra', '🕰️', 'runTime', 4], ['Resistência', '🛡️', 'runTime', 4], ['Montanha de Tralha', '⛰️', 'fieldCap', 4],
-      ['Jornada Dupla', '🌗', 'runTime', 6], ['Tempo Esticado', '🌀', 'runTime', 8], ['Eternidade', '♾️', 'runTime', 5],
-    ],
-    side: [
-      ['Lanche', '🥪', 'runTime', 1], ['Reposição Rápida', '📦', 'feedSpeed', 0.15], ['Mais Bagunça', '🧸', 'fieldCap', 1],
-      ['Alongamento', '🧘', 'runTime', 1], ['Organização', '🗂️', 'scrapMult', 0.08], ['Pausa do Café', '☕', 'runTime', 1.5],
-    ],
-  },
-  {
-    id: 'Automação', color: '#9b59b6', angle: 150,
-    spine: [
-      ['Alimentação Automática', '📦', 'feedSpeed', 0.25], ['Retirada Automática', '🧺', 'feedSpeed', 0.25], ['Martelo Auxiliar', '🤖', 'autoHit', 0.4],
-      ['Ciclos Programados', '🗓️', 'autoHit', 0.4], ['Pistão Fantasma', '👻', 'phantom', 0.15], ['Prensas Auxiliares', '🏗️', 'autoHit', 0.6],
-      ['Operação Simultânea', '⚙️', 'autoHit', 0.8], ['Esmagador Autônomo', '🦿', 'autoHit', 1], ['Linha de Montagem', '🏭', 'autoHit', 1],
-      ['IA de Demolição', '🧠', 'autoHit', 1.5], ['Fábrica Escura', '🌘', 'phantom', 0.25], ['Singularidade Fabril', '♾️', 'autoHit', 2.5],
-    ],
-    side: [
-      ['Sensor de Impacto', '📡', 'autoHit', 0.2], ['Calibração', '🎛️', 'forceMult', 0.08], ['Manutenção', '🔧', 'rateMult', 0.05],
-      ['Esteira Dupla', '🛤️', 'feedSpeed', 0.1], ['Fantasma Ágil', '👻', 'phantom', 0.05], ['Servo Motor', '🔌', 'autoHit', 0.3],
-    ],
-  },
-  {
-    id: 'Especial', color: '#e67e22', angle: 210,
-    spine: [
-      ['Impacto Crítico', '🎯', 'critChance', 0.04], ['Fúria Crítica', '😡', 'critMult', 0.5], ['Ressonância', '🔔', 'resonance', 0.04],
-      ['Compressão Residual', '🌀', 'residual', 0.1], ['Efeito Dominó', '🁢', 'domino', 0.08], ['Compressão em Cadeia', '⛓️', 'chain', 0.08],
-      ['Gravidade Instável', '🪐', 'gravity', 0.05], ['Implosão', '💠', 'forceMult', 0.5], ['Reciclagem Explosiva', '♻️', 'recycle', 0.1],
-      ['Multiplicação de Pressão', '✴️', 'critMult', 1], ['Campo Gravitacional', '🌌', 'gravity', 0.08], ['Destruição Massiva', '☢️', 'forceMult', 3],
-    ],
-    side: [
-      ['Sorte de Ferreiro', '🍀', 'critChance', 0.015], ['Faísca', '✨', 'critMult', 0.15], ['Vibração', '📳', 'resonance', 0.015],
-      ['Rachadura', '⚡', 'domino', 0.03], ['Peso Extra', '⚖️', 'gravity', 0.02], ['Pós-Choque', '💫', 'residual', 0.04],
-    ],
-  },
+type Spec = [id: string, parent: string | null, angle: number, dist: number, name: string, icon: string, desc: string, effects: [StatKey, number][], cost: number, growth: number, max: number, curr?: Currency];
+
+const C = { press: '#ff7a59', nail: '#f7d046', jar: '#7fd3ff', time: '#7bed9f', grip: '#c792ea', scrub: '#ff9ff3', ring: '#ffc66d', biz: '#a3e4d7', tool: '#ffffff', shine: '#ffe66d' };
+
+// angle in degrees from the parent node, distance in tree units
+const SPECS: [string, Spec[]][] = [
+  ['root', [['root', null, 0, 0, 'Primeiro Dia', '🧹', 'Toda faxineira começa com um dedo e muita vontade.', [], 0, 1, 1]]],
+  [C.press, [
+    ['press1', 'root', -90, 110, 'Dedo Firme', '👆', 'Cada esfregada tira mais sujeira.', [['bite', 0.12]], 5, 1.45, 8],
+    ['press2', 'press1', -90, 100, 'Pressão Caprichada', '💪', 'Força de quem lava a calçada todo domingo.', [['bite', 0.25]], 60, 1.5, 8],
+    ['press3', 'press2', -90, 100, 'Braço de Ferro', '🦾', 'A sujeira treme quando você chega.', [['bite', 0.6]], 900, 1.55, 10],
+    ['press4', 'press3', -90, 100, 'Força Bruta', '🏋️', 'Faxina olímpica.', [['bite', 2]], 15000, 1.6, 10],
+    ['press5', 'press4', -90, 100, 'Mão de Gigante', '✋', 'Sem limite. Literalmente.', [['bite', 6]], 250000, 1.7, 0],
+    ['lucky1', 'press2', -135, 95, 'Esfregada da Sorte', '🍀', 'Chance de cada pedacinho limpo render pó em dobro.', [['lucky', 0.05]], 150, 1.6, 6],
+    ['echo1', 'press3', -30, 95, 'Esfrega Fantasma', '👻', 'Onde você passa, a sujeira continua saindo por um instante.', [['echo', 0.2]], 2500, 1.7, 5],
+  ]],
+  [C.nail, [
+    ['nail1', 'press1', -30, 100, 'Unha Lixada', '💅', 'Unha dura o bastante para chiclete, fuligem e gordura.', [['tough', 1]], 45, 1, 1],
+    ['nail2', 'nail1', -20, 100, 'Unha de Tartaruga', '🐢', 'Aguenta limo sem quebrar.', [['tough', 1]], 1200, 1, 1],
+    ['nail3', 'nail2', -20, 100, 'Unha de Aço', '🔩', 'Finalmente a ferrugem perde a graça.', [['tough', 1]], 9000, 1, 1],
+    ['nail4', 'nail3', -20, 100, 'Unha de Diamante', '💎', 'Corta vidro. E sujeira de 50 anos.', [['tough', 1], ['bite', 1]], 180000, 1, 1],
+  ]],
+  [C.jar, [
+    ['jar1', 'root', -20, 110, 'Pote Maior', '🫙', 'Cabe mais pó por turno.', [['jar', 15]], 8, 1.45, 10],
+    ['jar2', 'jar1', 0, 100, 'Balde', '🪣', 'Agora sim, dá para trabalhar.', [['jar', 70]], 140, 1.5, 10],
+    ['jar3', 'jar2', 0, 100, 'Carrinho de Mão', '🛒', 'Pó a perder de vista.', [['jar', 500]], 2600, 1.55, 10],
+    ['jar4', 'jar3', 0, 100, 'Caçamba', '🚛', 'O pote definitivo.', [['jar', 4000]], 50000, 1.6, 0],
+    ['dust1', 'jar1', 50, 95, 'Pó Fino', '✨', 'Cada pitada de sujeira vale mais.', [['dust', 0.1]], 30, 1.5, 10],
+    ['dust2', 'dust1', -10, 95, 'Peneira de Ouro', '🥇', 'Separa o pó bom do pó ruim.', [['dust', 0.3]], 1500, 1.6, 10],
+    ['dust3', 'dust2', 20, 95, 'Alquimia da Faxina', '⚗️', 'Transforma sujeira em fortuna.', [['dust', 1]], 60000, 1.7, 0],
+  ]],
+  [C.time, [
+    ['time1', 'root', 30, 110, 'Fôlego', '🫁', 'Mais segundos por turno.', [['time', 1]], 10, 1.5, 10],
+    ['time2', 'time1', 30, 100, 'Café Passado', '☕', 'Energia de padaria.', [['time', 2]], 180, 1.55, 8],
+    ['time3', 'time2', 30, 100, 'Marmita Reforçada', '🍱', 'Faxina de barriga cheia rende mais.', [['time', 3]], 3000, 1.6, 8],
+    ['time4', 'time3', 30, 100, 'Hora Extra', '🕰️', 'O relógio que se cuide.', [['time', 5]], 45000, 1.7, 0],
+  ]],
+  [C.grip, [
+    ['grip1', 'root', 130, 110, 'Pegada Firme', '🤏', 'A pegada enche mais rápido quando você fica dentro do anel.', [['gripRate', 0.35]], 15, 1.5, 6],
+    ['grip2', 'grip1', 130, 100, 'Pegada de Ferro', '✊', 'Pegada cheia multiplica ainda mais.', [['gripMax', 0.25]], 100, 1.55, 8],
+    ['quick1', 'grip1', 170, 95, 'Anel Largo', '⭕', 'Com a pegada cheia, o anel cresce.', [['quick', 0.15]], 250, 1.55, 5],
+    ['grip3', 'grip2', 130, 100, 'Mão de Polvo', '🐙', 'Ninguém segura como você.', [['gripMax', 0.6]], 6000, 1.65, 6],
+    ['slick1', 'grip2', 90, 95, 'Luva de Borracha', '🧤', 'A gordura não derruba mais a sua pegada.', [['slick', 1]], 1800, 1, 1],
+  ]],
+  [C.scrub, [
+    ['scrub1', 'root', 180, 110, 'Vai e Volta', '↔️', 'Esfregar pra frente e pra trás rende mais que deslizar.', [['scrub', 0.25]], 12, 1.5, 8],
+    ['scrub2', 'scrub1', 200, 100, 'Ritmo de Samba', '🥁', 'Quanto mais vai e volta seguido, maior o bônus.', [['scrub', 0.5]], 320, 1.55, 8],
+    ['heat1', 'scrub1', 160, 95, 'Mãos Quentinhas', '🔥', 'Esfregar esquenta as mãos e derrete gordura.', [['heat', 0.6]], 220, 1.55, 5],
+    ['heat2', 'heat1', 130, 95, 'Mãos Fervendo', '🌋', 'As mãos esquentam muito mais rápido.', [['heat', 1.2]], 7000, 1.6, 5],
+    ['calm1', 'scrub2', 200, 95, 'Mão Leve', '🪶', 'A fuligem quase não espalha mais.', [['calm', 0.5]], 1400, 1.5, 2],
+    ['sweep1', 'scrub2', 150, 95, 'Varredura Geral', '🧹', 'Quando um pedaço fica limpo, a sujeirinha fina em volta vai junto.', [['sweep', 0.2]], 800, 1.6, 5],
+  ]],
+  [C.ring, [
+    ['ring1', 'root', 230, 110, 'Mão Aberta', '🖐️', 'Anel de contato maior.', [['ring', 0.35]], 10, 1.5, 8],
+    ['ring2', 'ring1', 230, 100, 'Palma Larga', '🙌', 'Pega um pedação de uma vez.', [['ring', 0.7]], 260, 1.55, 8],
+    ['ring3', 'ring2', 230, 100, 'Abraço de Urso', '🐻', 'Área gigantesca.', [['ring', 1.4]], 7000, 1.65, 6],
+  ]],
+  [C.biz, [
+    ['tip1', 'root', 75, 110, 'Simpatia', '😊', 'Donos dão gorjetas maiores pelos achados.', [['tip', 0.5]], 40, 1.6, 5],
+    ['sense1', 'tip1', 30, 95, 'Faro de Achados', '👃', 'Achados escondidos brilham por baixo da sujeira.', [['sense', 1]], 90, 1, 1],
+    ['card1', 'tip1', 100, 100, 'Cartão de Visita', '📇', 'Um novo cliente aparece no quadro.', [['cards', 1]], 2000, 1, 1],
+    ['card2', 'card1', 90, 100, 'Panfletos na Feira', '📰', 'Mais um cliente no quadro.', [['cards', 1]], 20000, 1, 1],
+    ['card3', 'card2', 90, 100, 'Anúncio na Rádio', '📻', 'O cliente mais exigente da cidade.', [['cards', 1]], 200000, 1, 1],
+  ]],
+  [C.tool, [
+    ['tool_esponja', 'ring1', 270, 95, 'Esponja', '🧽', 'Nova ferramenta: área enorme, ótima com gordura e fuligem.', [], 1, 1, 1, 'brilho'],
+    ['tool_espatula', 'nail1', -100, 95, 'Espátula', '🔪', 'Nova ferramenta: estreita e afiada, arranca chiclete e ferrugem.', [], 2, 1, 1, 'brilho'],
+    ['tool_escova', 'scrub2', 250, 95, 'Escova de Aço', '🪥', 'Nova ferramenta: dobra o bônus do vai e volta. Mata limo.', [], 3, 1, 1, 'brilho'],
+    ['tool_vapor', 'heat2', 160, 95, 'Vaporizador', '♨️', 'Nova ferramenta: limpa só de apontar, sem esfregar.', [], 5, 1, 1, 'brilho'],
+  ]],
+  [C.shine, [
+    ['helper1', 'time2', 90, 95, 'Siri Ajudante', '🦀', 'Um siri esfrega a superfície sozinho durante o turno.', [['helper', 1]], 2, 1, 1, 'brilho'],
+    ['helper2', 'helper1', 70, 95, 'Siri Turbinado', '🦀', 'O siri esfrega mais rápido.', [['helper', 0.6]], 400, 1.6, 8],
+    ['over1', 'time3', 90, 95, 'Segundo Fôlego', '🏁', 'Bater a marca dá +3 segundos no turno.', [['overtime', 3]], 2, 1, 1, 'brilho'],
+    ['polish1', 'jar2', -90, 95, 'Brilho no Olhar', '🌟', 'Pó extra para cada % acima da marca no fim do turno.', [['polish', 0.04]], 1, 1, 3, 'brilho'],
+    ['mega1', 'press3', -90, 0.01, 'Mão Abençoada', '🙏', 'Mordida dobrada. Para sempre.', [['bite', 0.5]], 3, 1, 1, 'brilho'],
+  ]],
 ];
 
-const STAT_LABEL: Record<StatKey, (v: number) => string> = {
-  forceMult: (v) => `+${Math.round(v * 100)}% força`, forceFlat: (v) => `+${v} força base`, rateMult: (v) => `+${Math.round(v * 100)}% velocidade`,
-  areaMult: (v) => `+${Math.round(v * 100)}% área de contato`, critChance: (v) => `+${(v * 100).toFixed(1)}% chance crítica`, critMult: (v) => `+${Math.round(v * 100)}% dano crítico`,
-  moneyMult: (v) => `+${Math.round(v * 100)}% dinheiro`, scrapMult: (v) => `+${Math.round(v * 100)}% sucata`, rareChance: (v) => `+${(v * 100).toFixed(1)}% chance de material raro`,
-  contractBonus: (v) => `+${Math.round(v * 100)}% bônus de contrato`, repMult: (v) => `+${Math.round(v * 100)}% reputação`, autoHit: (v) => `+${v} golpes automáticos/s`,
-  feedSpeed: (v) => `+${Math.round(v * 100)}% velocidade de esteira`, autoPress: () => `ferramentas contínuas operam sozinhas`, dentMult: (v) => `+${Math.round(v * 100)}% deformação visual`,
-  fragMult: (v) => `+${Math.round(v * 100)}% fragmentos`, pierce: (v) => `-${Math.round(v * 100)}% dureza efetiva`, vsMetal: (v) => `+${Math.round(v * 100)}% contra metal`,
-  vsGlass: (v) => `+${Math.round(v * 100)}% contra vidro`, vsWood: (v) => `+${Math.round(v * 100)}% contra madeira`, vsPlastic: (v) => `+${Math.round(v * 100)}% contra plástico`,
-  pressSpeed: (v) => `+${Math.round(v * 100)}% velocidade das prensas`, runTime: (v) => `+${v}s de tempo por run`, fieldCap: (v) => `+${v} itens no cenário`, doubleHit: (v) => `+${Math.round(v * 100)}% chance de golpe duplo`, residual: (v) => `+${Math.round(v * 100)}% compressão residual`,
-  domino: (v) => `+${Math.round(v * 100)}% chance de ruptura em cadeia`, phantom: (v) => `pistão fantasma +${Math.round(v * 100)}% frequência`, resonance: (v) => `+${(v * 100).toFixed(1)}% ressonância por golpe`,
-  gravity: (v) => `+${Math.round(v * 100)}% chance de compressão gravitacional`, recycle: (v) => `+${Math.round(v * 100)}% bônus ao próximo objeto`, shockwave: (v) => `+${Math.round(v * 100)}% onda de choque`,
-  chain: (v) => `+${Math.round(v * 100)}% dano em cadeia`, spMult: (v) => `+${Math.round(v * 100)}% pontos de habilidade`, toolDiscount: (v) => `-${Math.round(v * 100)}% preço de ferramentas`,
-};
-export const describeEffect = (stat: StatKey, v: number) => STAT_LABEL[stat](v);
-
-const SPECIAL_DESC: Record<string, string> = {
-  'Ataques Múltiplos': 'Golpe Duplo: golpes podem gerar um segundo impacto.',
-  'Compressão Residual': 'O objeto continua se deformando após cada impacto.',
-  'Efeito Dominó': 'Rupturas podem provocar outras rupturas.',
-  'Pistão Fantasma': 'Uma prensa auxiliar atinge o objeto periodicamente.',
-  'Ressonância': 'Impactos sucessivos aumentam temporariamente a eficiência.',
-  'Gravidade Instável': 'Impactos podem gerar compressão gravitacional extra.',
-  'Reciclagem Explosiva': 'Concluir um objeto dá bônus de dano ao próximo.',
-  'Onda de Choque': 'Golpes emitem uma onda que deforma a área ao redor.',
-  'Compressão em Cadeia': 'Parte do dano se propaga pelos componentes.',
-  'Esmagador Autônomo': 'Um robozinho esmaga itens sozinho durante a run.',
-  'Martelo Auxiliar': 'Um braço robótico golpeia o objeto automaticamente.',
-};
-
-const MILESTONES: Record<number, { tool?: string; rep?: number; label: string }> = {
-  3: { rep: 3, label: 'Reputação 3' },
-  6: { tool: 'sledge', label: 'Requer Marreta' },
-  8: { tool: 'press', label: 'Requer Prensa Bocuda' },
-  10: { tool: 'dragon', label: 'Requer Prensa Dragão' },
-  11: { tool: 'gravity', label: 'Requer Punho Gravitacional' },
-};
-
-function tierCost(ring: number): { cost: number; curr: SkillCurrency } {
-  return { cost: Math.round(4 * Math.pow(3, ring)), curr: 'scrap' };
+export const SKILLS: SkillNode[] = [];
+const pos: Record<string, [number, number]> = {};
+for (const [color, list] of SPECS) {
+  for (const [id, parent, angle, dist, name, icon, desc, effects, cost, growth, max, curr] of list) {
+    const [px, py] = parent ? pos[parent] : [0, 0];
+    let x = px + Math.cos((angle * Math.PI) / 180) * dist, y = py + Math.sin((angle * Math.PI) / 180) * dist;
+    if (id === 'mega1') { x = px - 85; y = py - 40; }
+    pos[id] = [x, y];
+    SKILLS.push({ id, parent, x, y, name, icon, desc, effects, cost, growth, max, curr: curr ?? 'po', color: id === 'root' ? '#ffe66d' : color });
+  }
 }
-
-export function buildSkillTree(): SkillNode[] {
-  const nodes: SkillNode[] = [];
-  nodes.push({ id: 'root', name: 'Bancada Improvisada', desc: 'Onde tudo começa.', icon: '🪚', x: 0, y: 0, cost: 0, curr: 'scrap', growth: 1, max: 1, prereqs: [], effects: [], kind: 'root', family: 'Origem', color: '#f2a516' });
-  const STEP = 120;
-  const spineIds: string[][] = [];
-  FAMILIES.forEach((fam, fi) => {
-    const ids: string[] = [];
-    fam.angle = -90 + (360 / FAMILIES.length) * fi;
-    const a = (fam.angle * Math.PI) / 180;
-    const dx = Math.cos(a), dy = Math.sin(a);
-    const px = -dy, py = dx;
-    fam.spine.forEach(([name, icon, stat, v], i) => {
-      const ring = i + 1;
-      const wobble = Math.sin(i * 1.7 + fi) * 26;
-      const id = `${fi}s${i}`;
-      const { cost, curr } = tierCost(ring);
-      const special = SPECIAL_DESC[name];
-      const ms = MILESTONES[i];
-      const isLast = i === fam.spine.length - 1;
-      nodes.push({
-        id, name, icon, family: fam.id, color: fam.color,
-        desc: special ?? `Ramo de ${fam.id}.`,
-        x: dx * STEP * (ring + 0.6) + px * wobble, y: dy * STEP * (ring + 0.6) + py * wobble,
-        cost: special ? Math.max(1, Math.ceil(ring / 2)) : cost, curr: special ? 'sp' : curr,
-        growth: special ? 1.6 : 1.75,
-        max: isLast ? 0 : special ? 3 : ring < 4 ? 10 : 8,
-        prereqs: [i === 0 ? 'root' : ids[i - 1]],
-        effects: [{ stat, v }],
-        kind: isLast ? 'infinite' : special ? 'special' : ms ? 'milestone' : 'spine',
-        req: ms ? { tool: ms.tool, rep: ms.rep } : undefined,
-        hidden: ring >= 7,
-      });
-      ids.push(id);
-      // side branches every other spine node, alternating side
-      if (i % 2 === 1 || i === 0) {
-        const sgn = i % 4 === 1 ? 1 : -1;
-        const len = i < 4 ? 2 : 3;
-        let prev = id;
-        for (let k = 0; k < len; k++) {
-          const [sn, si, ss, sv] = fam.side[(i + k) % fam.side.length];
-          const sid = `${fi}b${i}_${k}`;
-          const sc = tierCost(ring + k * 0.5);
-          nodes.push({
-            id: sid, name: `${sn} ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][Math.floor(i / 2)]}`, icon: si, family: fam.id, color: fam.color,
-            desc: `Especialização de ${fam.id}.`,
-            x: dx * STEP * (ring + 0.6 + k * 0.35) + px * sgn * STEP * (0.75 + k * 0.7) + px * wobble,
-            y: dy * STEP * (ring + 0.6 + k * 0.35) + py * sgn * STEP * (0.75 + k * 0.7) + py * wobble,
-            cost: sc.cost, curr: sc.curr, growth: 1.7, max: k === len - 1 && i >= 5 ? 0 : 6,
-            prereqs: [prev], effects: [{ stat: ss, v: sv * (1 + i * 0.25) }], kind: 'side', hidden: ring >= 5 || k === 2,
-          });
-          prev = sid;
-        }
-      }
-    });
-    spineIds.push(ids);
-  });
-  // cross links between neighbouring families
-  const CROSS: [string, string, StatKey, number][] = [
-    ['Golpe Pesado', '🔨', 'forceMult', 0.2], ['Martelada Elástica', '🎾', 'areaMult', 0.1], ['Rendimento Industrial', '📦', 'moneyMult', 0.2],
-    ['Fôlego de Ouro', '🪙', 'moneyMult', 0.2], ['Lucro Automático', '🤖', 'autoHit', 0.5], ['Sorte Programada', '🎲', 'critChance', 0.03], ['Fúria Bruta', '😤', 'critMult', 0.4],
-  ];
-  FAMILIES.forEach((_fam, fi) => {
-    const fj = (fi + 1) % FAMILIES.length;
-    for (const ring of [3, 6, 9]) {
-      const a = spineIds[fi][ring - 1], b = spineIds[fj][ring - 1];
-      const na = nodes.find((n) => n.id === a)!, nb = nodes.find((n) => n.id === b)!;
-      const [cn, ci, cs, cv] = CROSS[fi];
-      const tc = tierCost(ring + 1);
-      nodes.push({
-        id: `x${fi}_${ring}`, name: `${cn} ${ring === 3 ? 'I' : ring === 6 ? 'II' : 'III'}`, icon: ci, family: 'Conexão', color: '#ecf0f1',
-        desc: 'Nó de conexão: exige os dois caminhos adjacentes.',
-        x: (na.x + nb.x) / 2 * 1.08, y: (na.y + nb.y) / 2 * 1.08, cost: tc.cost, curr: 'scrap', growth: 1.8, max: 5,
-        prereqs: [a, b], all: true, effects: [{ stat: cs, v: cv * ring / 3 }], kind: 'cross', hidden: ring >= 6,
-      });
-    }
-  });
-  // deep hidden region: rare-material relics beyond the outer ring
-  FAMILIES.forEach((fam, fi) => {
-    const last = spineIds[fi][spineIds[fi].length - 1];
-    const ln = nodes.find((n) => n.id === last)!;
-    const a = (fam.angle * Math.PI) / 180;
-    nodes.push({
-      id: `relic${fi}`, name: `Relíquia: ${fam.id}`, icon: '🔮', family: fam.id, color: '#a29bfe', desc: 'Tecnologia proibida, paga com materiais raros.',
-      x: ln.x + Math.cos(a) * STEP * 1.4, y: ln.y + Math.sin(a) * STEP * 1.4, cost: 50, curr: 'rare', growth: 2, max: 0,
-      prereqs: [last], effects: [{ stat: fam.spine[0][2], v: fam.spine[0][3] * 4 }], kind: 'special', hidden: true,
-    });
-  });
-  return nodes;
-}
-
-export const SKILLS = buildSkillTree();
-export const SKILL_MAP: Record<string, SkillNode> = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
+export const SKILL: Record<string, SkillNode> = Object.fromEntries(SKILLS.map((s) => [s.id, s]));

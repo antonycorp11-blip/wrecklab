@@ -3,62 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#16130f" />
+  <meta name="theme-color" content="#2b1d33" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="description" content="Wreck Lab — jogo incremental de destruição, deformação e evolução industrial." />
+  <meta name="description" content="Esfrega! — um incremental aconchegante de faxina em pixel art." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <title>Wreck Lab</title>
+  <title>Esfrega!</title>
 </head>
 <body>
   <div id="app">
     <canvas id="game"></canvas>
-    <div id="hud">
-      <div id="topbar">
-        <div class="brand">WRECK<span>LAB</span></div>
-        <div class="res" id="r-money" title="Dinheiro">💵 <b>0</b></div>
-        <div class="res" id="r-scrap" title="Sucata">⚙️ <b>0</b></div>
-        <div class="res" id="r-rare" title="Materiais raros">💎 <b>0</b></div>
-        <div class="res" id="r-sp" title="Pontos de habilidade">🧠 <b>0</b></div>
-        <div class="res" id="r-rep" title="Reputação">⭐ <b>0</b></div>
-        <div class="stage" id="stage"></div>
-      </div>
-      <div id="contract-hud" class="card"></div>
-      <div id="object-hud"></div>
-      <div id="side">
-        <button class="sbtn" data-open="tree" title="Árvore de habilidades (T)">🌳<i id="b-tree"></i><small>Árvore</small></button>
-        <button class="sbtn" data-open="shop" title="Ferramentas (F)">🛒<i id="b-shop"></i><small>Ferramentas</small></button>
-        <button class="sbtn" data-open="contracts" title="Contratos (C)">📋<small>Contratos</small></button>
-        <button class="sbtn" data-open="challenges" title="Desafios">🏆<i id="b-chal"></i><small>Desafios</small></button>
-        <button class="sbtn" data-open="settings" title="Configurações">⚙️<small>Ajustes</small></button>
-      </div>
-      <div id="toolbar"></div>
-      <div id="hint"></div>
-      <div id="toasts"></div>
-      <div id="banner"></div>
-    </div>
-    <div id="lobby" class="hidden"></div>
-    <div id="modal" class="hidden">
-      <div class="panel">
-        <div class="panel-head"><h2 id="panel-title"></h2><button class="close" data-close>✕</button></div>
-        <div class="panel-body" id="panel-body"></div>
-      </div>
-    </div>
-    <div id="tree" class="hidden">
+    <header id="top">
+      <div class="logo">ESFREGA<span>!</span></div>
+      <div class="cur" title="Pó"><span>🧹</span><b id="t-po">0</b></div>
+      <div class="cur" title="Brilho"><span>🌟</span><b id="t-brilho">0</b></div>
+      <nav>
+        <button data-go="board" title="Quadro de clientes">📌</button>
+        <button data-go="tree" title="Habilidades">🌳<i id="b-tree"></i></button>
+        <button data-go="settings" title="Ajustes">⚙️</button>
+      </nav>
+    </header>
+    <section id="board" class="hidden"></section>
+    <section id="sheet" class="panel hidden"></section>
+    <section id="hud" class="hidden"></section>
+    <section id="summary" class="panel hidden"></section>
+    <div id="toasts"></div>
+    <div id="modal" class="hidden"></div>
+    <section id="tree" class="hidden">
       <canvas id="tree-canvas"></canvas>
-      <div id="tree-top">
-        <button class="close" data-tree-close>✕</button>
-        <div class="tree-title">ÁRVORE DE HABILIDADES <span id="tree-count"></span></div>
-        <div class="tree-res" id="tree-res"></div>
-        <button class="tbtn" data-tree-center>⌖ Centro</button>
-      </div>
-      <div id="tree-info" class="hidden"></div>
-    </div>
-    <div id="rotate"><div>📱↻</div><p>Gire o aparelho para o modo horizontal</p></div>
+      <div id="tree-top"><button id="tree-close" class="x">✕</button><b>HABILIDADES</b><div id="tree-res"></div></div>
+      <div id="tree-info"></div>
+    </section>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

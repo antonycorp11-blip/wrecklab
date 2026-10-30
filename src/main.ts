@@ -1,12 +1,13 @@
 import './style.css';
-import { GameEngine } from './core/GameEngine';
-import { UIManager } from './ui/UIManager';
-import { SkillTreeView } from './ui/SkillTreeView';
+import { Game } from './game/game';
+import { UI } from './ui/ui';
+import { TreeView } from './ui/tree';
 
-const engine = new GameEngine(document.getElementById('game') as HTMLCanvasElement);
-const ui = new UIManager(engine);
-engine.ui = ui;
-ui.treeView = new SkillTreeView(engine, document.getElementById('tree-canvas') as HTMLCanvasElement);
-engine.start();
-ui.refreshAll();
-(window as any).wreck = engine;
+const game = new Game(document.getElementById('game') as HTMLCanvasElement);
+const ui = new UI(game);
+game.ui = ui;
+ui.tree = new TreeView(game, document.getElementById('tree-canvas') as HTMLCanvasElement);
+game.start();
+if (game.save.stats.shifts === 0) game.openPlace(game.save.current);
+else game.openBoard();
+(window as any).esfrega = game;

@@ -1,10 +1,9 @@
 {
-  "name": "Wreck Lab",
-  "short_name": "Wreck Lab",
-  "display": "fullscreen",
-  "orientation": "landscape",
-  "background_color": "#16130f",
-  "theme_color": "#16130f",
+  "name": "Esfrega!",
+  "short_name": "Esfrega!",
+  "display": "standalone",
+  "background_color": "#2b1d33",
+  "theme_color": "#2b1d33",
   "start_url": "./",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }
