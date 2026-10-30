@@ -166,12 +166,17 @@ export class UI {
   // ---------------------------------------------------------- shift HUD
   showShift() {
     this.hideAll();
+    document.body.dataset.screen = 'shift';
     const p = this.g.place;
     $('hud').innerHTML = `
+      <div class="h-label">TEMPO</div>
       <div class="h-row"><div class="timer"><div id="h-time-bar"></div><span id="h-time"></span></div></div>
-      <div class="h-row"><div class="clean"><div id="h-clean-bar"></div><i class="mark" style="left:${p.mark * 100}%"></i><i class="mark gold" style="left:98.5%"></i><span id="h-clean"></span></div>
-      <div class="jar"><span id="jar-ico">🫙</span><span id="h-jar"></span></div>
-      <div class="hfinds" id="h-finds"></div></div>`;
+      <div class="h-label">LIMPEZA · MARCA ${Math.round(p.mark * 100)}%</div>
+      <div class="h-row"><div class="clean"><div id="h-clean-bar"></div><i class="mark" style="left:${p.mark * 100}%"></i><i class="mark gold" style="left:98.5%"></i><span id="h-clean"></span></div></div>
+      <div class="h-label">POTE</div>
+      <div class="h-row"><div class="jar"><span id="jar-ico">🫙</span><span id="h-jar"></span></div></div>
+      <div class="h-label">ACHADOS</div>
+      <div class="h-row"><div class="hfinds" id="h-finds"></div></div>`;
     $('hud').classList.remove('hidden');
     this.updateHud(1);
   }
@@ -237,6 +242,7 @@ export class UI {
       <label class="set">Volume <input type="range" min="0" max="1" step="0.05" value="${st.volume}" data-set="volume"></label>
       <label class="set">Som <input type="checkbox" data-set="sound" ${st.muted ? '' : 'checked'}></label>
       <label class="set">Vibração <input type="checkbox" data-set="haptics" ${st.haptics ? 'checked' : ''}></label>
+      <div class="set"><span>Tela cheia (trava na horizontal)</span><button class="btn alt" style="width:auto" data-act="fullscreen">⛶</button></div>
       <label class="set">Mouse: clicar uma vez trava a esfregada <input type="checkbox" data-set="latch" ${st.latch ? 'checked' : ''}></label>
       <div class="stats">Turnos: <b>${s.stats.shifts}</b> · Pó total: <b>${fmt(s.stats.poTotal)}</b> · Achados: <b>${s.stats.finds}</b> · Selos: <b>${s.stats.stamps}</b></div>
       <div class="set col"><b>Salvamento</b><small>O jogo salva sozinho a cada poucos segundos.</small>
@@ -270,7 +276,8 @@ export class UI {
     if (d.go2 === 'tree') { this.tree.open(); return; }
     if (d.go2 === 'board') { g.openBoard(); return; }
     switch (d.act) {
-      case 'start': g.startShift(); break;
+      case 'start': this.goFullscreen(); g.startShift(); break;
+      case 'fullscreen': this.goFullscreen(true); break;
       case 'export': ($('io') as HTMLTextAreaElement).value = Save.export(g.save); break;
       case 'import': {
         const data = Save.import(($('io') as HTMLTextAreaElement).value);
@@ -283,6 +290,21 @@ export class UI {
         break;
     }
   }
+
+  /** On phones, enter fullscreen and lock landscape on the first shift (browsers allow it only after a tap). */
+  goFullscreen(force = false) {
+    const touch = matchMedia('(pointer: coarse)').matches;
+    if (!force && (!touch || this.fsTried)) return;
+    this.fsTried = true;
+    const el = document.documentElement as any;
+    if (document.fullscreenElement) { if (force) document.exitFullscreen?.(); return; }
+    const req = el.requestFullscreen ?? el.webkitRequestFullscreen;
+    try {
+      const p = req?.call(el, { navigationUI: 'hide' });
+      Promise.resolve(p).then(() => (screen.orientation as any)?.lock?.('landscape')).catch(() => {});
+    } catch { /* not supported (iOS Safari) */ }
+  }
+  private fsTried = false;
 
   /** called after buying skills */
   afterUpgrade() {

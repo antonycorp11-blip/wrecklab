@@ -1,6 +1,6 @@
 # ESFREGA!
 
-Incremental aconchegante de faxina em pixel art, feito para celular (em pé ou deitado) e navegador.
+Incremental aconchegante de faxina em pixel art, feito para **celular na horizontal** (e navegador). Em pé, o jogo pede para girar o aparelho; no primeiro turno ele tenta entrar em tela cheia travado na horizontal (Android/Chrome; o Safari do iPhone não permite travar).
 
 Você abre uma pequena firma de faxina em **Vila Maresia**, uma cidadezinha litorânea. Os moradores deixam pedidos no quadro de clientes: a janela do sótão da Vó Cida, o ventilador da padaria do Seu Jurandir, o banco da praça cheio de chiclete, a chapa da lanchonete do Bigode, o barco do Seu Tonho tomado de limo, o sino enferrujado do farol...
 

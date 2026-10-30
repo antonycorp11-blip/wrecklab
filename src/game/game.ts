@@ -366,12 +366,11 @@ export class Game {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.w * this.dpr);
     this.canvas.height = Math.round(this.h * this.dpr);
-    const portrait = this.h > this.w;
-    let ax = 8, ay = 52, aw = this.w - 16, ah = this.h - 60;
-    if (this.screen === 'shift') { ay = portrait ? 120 : 92; ah = this.h - ay - (portrait ? 70 : 12); }
-    else if (this.screen === 'place' || this.screen === 'summary') {
-      if (portrait) { ay = 56; ah = this.h * 0.4; } else { aw = this.w * 0.55 - 16; ay = 56; ah = this.h - 66; }
-    }
+    // landscape layout: HUD column on the left during a shift, info panel on the right otherwise
+    const top = this.h < 430 ? 46 : 54;
+    let ax = 8, ay = top, aw = this.w - 16, ah = this.h - top - 8;
+    if (this.screen === 'shift') { ax = (this.h < 430 ? 148 : 166); aw = this.w - ax - 10; ay = 8; ah = this.h - 16; }
+    else if (this.screen === 'place' || this.screen === 'summary') { aw = this.w - Math.min(this.w * 0.45, 440) - 24; }
     let s = Math.min(aw / 72, ah / 54);
     if (s >= 3) s = Math.floor(s);
     this.view = { s, x: Math.round(ax + (aw - 72 * s) / 2), y: Math.round(ay + (ah - 54 * s) / 2) };

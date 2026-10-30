@@ -1,7 +1,8 @@
 {
   "name": "Esfrega!",
   "short_name": "Esfrega!",
-  "display": "standalone",
+  "display": "fullscreen",
+  "orientation": "landscape",
   "background_color": "#2b1d33",
   "theme_color": "#2b1d33",
   "start_url": "./",
